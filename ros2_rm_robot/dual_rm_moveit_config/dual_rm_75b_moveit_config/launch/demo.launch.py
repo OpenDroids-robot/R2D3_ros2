@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, TimerAction
 from launch.substitutions import LaunchConfiguration
@@ -117,3 +118,12 @@ def generate_launch_description():
             platform_controller_spawner,
         ]
     )
+=======
+from moveit_configs_utils import MoveItConfigsBuilder
+from moveit_configs_utils.launches import generate_demo_launch
+
+
+def generate_launch_description():
+    moveit_config = MoveItConfigsBuilder("dual_rm_75b_description", package_name="dual_rm_75b_moveit_config").to_moveit_configs()
+    return generate_demo_launch(moveit_config)
+>>>>>>> 692495e (replaced the gripper with 2 finger gripper and MoveIt setup is in progress)

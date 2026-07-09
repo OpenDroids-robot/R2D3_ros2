@@ -4,6 +4,8 @@ moveit_simple_controller_manager:
   controller_names:
     - left_arm_controller
     - right_arm_controller
+    - l_gripper_controller
+    - r_gripper_controller
     - platform_controller
 
   left_arm_controller:
@@ -17,7 +19,6 @@ moveit_simple_controller_manager:
       - l_joint4
       - l_joint5
       - l_joint6
-      - l_joint7
 
   right_arm_controller:
     type: FollowJointTrajectory
@@ -30,11 +31,24 @@ moveit_simple_controller_manager:
       - r_joint4
       - r_joint5
       - r_joint6
-      - r_joint7
+
+  l_gripper_controller:
+    type: GripperCommand
+    action_ns: gripper_cmd
+    default: true
+    joints:
+      - l_4c2_gripper_joint
+
+  r_gripper_controller:
+    type: GripperCommand
+    action_ns: gripper_cmd
+    default: true
+    joints:
+      - r_4c2_gripper_joint
 
   platform_controller:
     type: GripperCommand
-    joints:
-      - platform_joint
     action_ns: gripper_cmd
     default: true
+    joints:
+      - platform_joint

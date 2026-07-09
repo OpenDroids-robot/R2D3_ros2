@@ -15,7 +15,21 @@ def generate_launch_description():
         package="moveit_ros_move_group",
         executable="move_group",
         output="screen",
+<<<<<<< HEAD
         parameters=[moveit_config.to_dict()],
+=======
+        parameters=[
+            {'use_sim_time': True},
+            robot_description,
+            robot_description_semantic,
+            kinematics_yaml,
+            ompl_planning_pipeline_config,
+            trajectory_execution,
+            joint_limits,
+            moveit_controllers,
+            planning_scene_monitor_parameters,
+        ],
+>>>>>>> 692495e (replaced the gripper with 2 finger gripper and MoveIt setup is in progress)
     )
 
     # RViz (Standard)
@@ -28,10 +42,18 @@ def generate_launch_description():
         output="log",
         arguments=["-d", rviz_full_config],
         parameters=[
+<<<<<<< HEAD
             moveit_config.robot_description,
             moveit_config.robot_description_semantic,
             moveit_config.planning_pipelines,
             moveit_config.robot_description_kinematics,
+=======
+            {'use_sim_time': True},
+            robot_description,
+            robot_description_semantic,
+            ompl_planning_pipeline_config,
+            kinematics_yaml,
+>>>>>>> 692495e (replaced the gripper with 2 finger gripper and MoveIt setup is in progress)
         ],
     )
     
