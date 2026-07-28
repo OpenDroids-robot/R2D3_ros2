@@ -1,8 +1,8 @@
-# R2D3 Bringup
+# R2D3 Apps
 
 ## 1. Project Introduction
 
-`r2d3_bringup` is a unified ROS 2 bringup, configuration, and testing package for the R2D3 dual-arm mobile robot.
+`ros2_r2d3_bringup` is a unified ROS 2 bringup, configuration, and testing package for the R2D3 dual-arm mobile robot.
 
 The implemented functionality includes:
 
