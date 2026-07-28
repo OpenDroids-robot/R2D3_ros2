@@ -42,40 +42,44 @@
     <axis
       xyz="0 0 0" />
   </joint>
-  <joint
-    name="r_hand_joint"
-    type="fixed">
-    <origin
-      xyz="0 0 0.0445"
-      rpy="0 0 0" />
-    <parent
-      link="r_link6" />
-    <child
-      link="r_hand_base_link" />
-    <axis
-      xyz="0 0 -1" />
-    <limit
-      lower="0"
-      upper="0"
-      effort="0"
-      velocity="0" />
-  </joint>
-  <joint
-    name="l_hand_joint"
-    type="fixed">
-    <origin
-      xyz="0 0 0.0445"
-      rpy="3.1415 3.1415 3.1415" />
-    <parent
-      link="l_link6" />
-    <child
-      link="l_hand_base_link" />
-    <axis
-      xyz="0 0 0" />
-    <limit
-      lower="0"
-      upper="0"
-      effort="0"
-      velocity="0" />
-  </joint>
+
+  <!-- Dummy Hand Joints Wrapped in Conditional -->
+  <xacro:if value="${gripper_type == 'dummy'}">
+    <joint
+      name="r_hand_joint"
+      type="fixed">
+      <origin
+        xyz="0 0 0.0445"
+        rpy="0 0 0" />
+      <parent
+        link="r_link6" />
+      <child
+        link="r_hand_base_link" />
+      <axis
+        xyz="0 0 -1" />
+      <limit
+        lower="0"
+        upper="0"
+        effort="0"
+        velocity="0" />
+    </joint>
+    <joint
+      name="l_hand_joint"
+      type="fixed">
+      <origin
+        xyz="0 0 0.0445"
+        rpy="3.1415 3.1415 3.1415" />
+      <parent
+        link="l_link6" />
+      <child
+        link="l_hand_base_link" />
+      <axis
+        xyz="0 0 0" />
+      <limit
+        lower="0"
+        upper="0"
+        effort="0"
+        velocity="0" />
+    </joint>
+  </xacro:if>
 </robot>

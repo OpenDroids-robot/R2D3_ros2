@@ -8,7 +8,7 @@ default_acceleration_scaling_factor: 0.1
 # Specific joint properties can be changed with the keys [max_position, min_position, max_velocity, max_acceleration]
 # Joint limits can be turned off with [has_velocity_limits, has_acceleration_limits]
 joint_limits:
-  l_4c2_gripper_joint:
+  l_gripper_joint:
     has_velocity_limits: true
     max_velocity: 0.29999999999999999
     has_acceleration_limits: false
@@ -45,12 +45,42 @@ joint_limits:
     max_velocity: 3.9249999999999998
     has_acceleration_limits: false
     max_acceleration: 0
+  l_joint7:
+    has_velocity_limits: true
+    max_velocity: 3.9249999999999998
+    has_acceleration_limits: false
+    max_acceleration: 0
+  l_l_1_joint:
+    has_velocity_limits: true
+    max_velocity: 0.29999999999999999
+    has_acceleration_limits: false
+    max_acceleration: 0
+  l_l_2_joint:
+    has_velocity_limits: true
+    max_velocity: 0.29999999999999999
+    has_acceleration_limits: false
+    max_acceleration: 0
+  l_l_3_joint:
+    has_velocity_limits: true
+    max_velocity: 0.29999999999999999
+    has_acceleration_limits: false
+    max_acceleration: 0
+  l_r_2_joint:
+    has_velocity_limits: true
+    max_velocity: 0.29999999999999999
+    has_acceleration_limits: false
+    max_acceleration: 0
+  l_r_3_joint:
+    has_velocity_limits: true
+    max_velocity: 0.29999999999999999
+    has_acceleration_limits: false
+    max_acceleration: 0
   platform_joint:
     has_velocity_limits: true
     max_velocity: 0.14999999999999999
     has_acceleration_limits: false
     max_acceleration: 0
-  r_4c2_gripper_joint:
+  r_gripper_joint:
     has_velocity_limits: true
     max_velocity: 0.29999999999999999
     has_acceleration_limits: false
@@ -85,5 +115,35 @@ joint_limits:
   r_joint6:
     has_velocity_limits: true
     max_velocity: 3.9249999999999998
+    has_acceleration_limits: false
+    max_acceleration: 0
+  r_joint7:
+    has_velocity_limits: true
+    max_velocity: 3.9249999999999998
+    has_acceleration_limits: false
+    max_acceleration: 0
+  r_l_1_joint:
+    has_velocity_limits: true
+    max_velocity: 0.29999999999999999
+    has_acceleration_limits: false
+    max_acceleration: 0
+  r_l_2_joint:
+    has_velocity_limits: true
+    max_velocity: 0.29999999999999999
+    has_acceleration_limits: false
+    max_acceleration: 0
+  r_l_3_joint:
+    has_velocity_limits: true
+    max_velocity: 0.29999999999999999
+    has_acceleration_limits: false
+    max_acceleration: 0
+  r_r_2_joint:
+    has_velocity_limits: true
+    max_velocity: 0.29999999999999999
+    has_acceleration_limits: false
+    max_acceleration: 0
+  r_r_3_joint:
+    has_velocity_limits: true
+    max_velocity: 0.29999999999999999
     has_acceleration_limits: false
     max_acceleration: 0

@@ -9,8 +9,6 @@
 #include <librealsense2/rsutil.h>
 #include "constants.h"
 #include "dynamic_params.h"
-// [Version Mismatch Note]: ROS 2 Humble uses .h, newer versions (Iron/Jazzy) use .hpp
-// #include <cv_bridge/cv_bridge.hpp>
 #include <cv_bridge/cv_bridge.h>
 
 // #include <nav_msgs/Odometry.h>

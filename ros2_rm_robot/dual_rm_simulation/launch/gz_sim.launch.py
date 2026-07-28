@@ -12,6 +12,7 @@ from launch.actions import (
     IncludeLaunchDescription,
     RegisterEventHandler,
 )
+from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import (
@@ -19,6 +20,7 @@ from launch.substitutions import (
     FindExecutable,
     LaunchConfiguration,
     PathJoinSubstitution,
+    PythonExpression,
 )
 from launch_ros.actions import Node
 from launch_ros.descriptions import ParameterValue
@@ -44,9 +46,15 @@ def generate_launch_description():
         'gz_verbosity', default_value='1',
         description='Gz Sim verbosity level (0-4)',
     )
+    declare_gripper_type = DeclareLaunchArgument(
+        'gripper_type', default_value='dummy',
+        description='Choose gripper type: dummy or 4c2',
+    )
+    
     robot_model = LaunchConfiguration('robot_model')
     world = LaunchConfiguration('world')
     gz_verbosity = LaunchConfiguration('gz_verbosity')
+    gripper_type = LaunchConfiguration('gripper_type')
 
     # ── Unified sim xacro with arm_model argument ─────────────────
     urdf_xacro_path = PathJoinSubstitution([
@@ -59,6 +67,7 @@ def generate_launch_description():
         PathJoinSubstitution([FindExecutable(name='xacro')]),
         ' ', urdf_xacro_path,
         ' arm_model:=', robot_model,
+        ' gripper_type:=', gripper_type,
     ])
     robot_description_content = ParameterValue(xacro_cmd, value_type=str)
     robot_description = {'robot_description': robot_description_content}
@@ -70,6 +79,9 @@ def generate_launch_description():
         'GZ_SIM_RESOURCE_PATH', os.path.join(pkg_desc, 'meshes', 'arms_65b'))
     set_resource_path_arms75 = AppendEnvironmentVariable(
         'GZ_SIM_RESOURCE_PATH', os.path.join(pkg_desc, 'meshes', 'arms_75b'))
+    # Resource path for the new shared grippers folder
+    set_resource_path_grippers = AppendEnvironmentVariable(
+        'GZ_SIM_RESOURCE_PATH', os.path.join(pkg_desc, 'meshes', 'grippers'))
     set_resource_path_desc = AppendEnvironmentVariable(
         'GZ_SIM_RESOURCE_PATH', str(Path(pkg_desc).parent.resolve()))
     set_resource_path_worlds = AppendEnvironmentVariable(
@@ -155,6 +167,18 @@ def generate_launch_description():
         package='controller_manager', executable='spawner',
         arguments=['platform_controller'],
     )
+    
+    # Conditionally spawn the gripper controllers only if the 4c2 is selected
+    l_gripper_controller_spawner = Node(
+        package='controller_manager', executable='spawner',
+        arguments=['l_gripper_controller'],
+        condition=IfCondition(PythonExpression(["'", gripper_type, "' == '4c2'"]))
+    )
+    r_gripper_controller_spawner = Node(
+        package='controller_manager', executable='spawner',
+        arguments=['r_gripper_controller'],
+        condition=IfCondition(PythonExpression(["'", gripper_type, "' == '4c2'"]))
+    )
 
     # ── Event sequencing: spawn → JSB → other controllers ────────
     evt_spawn_done = RegisterEventHandler(
@@ -171,6 +195,8 @@ def generate_launch_description():
                 left_arm_controller_spawner,
                 right_arm_controller_spawner,
                 platform_controller_spawner,
+                l_gripper_controller_spawner,  # ADDED
+                r_gripper_controller_spawner,  # ADDED
             ],
         )
     )
@@ -179,10 +205,12 @@ def generate_launch_description():
         declare_robot_model,
         declare_world,
         declare_gz_verbosity,
+        declare_gripper_type,
 
         set_resource_path_common,
         set_resource_path_arms65,
         set_resource_path_arms75,
+        set_resource_path_grippers,
         set_resource_path_desc,
         set_resource_path_worlds,
         gz_sim,

@@ -1,14 +1,11 @@
 planning_plugins:
   - ompl_interface/OMPLPlanner
-request_adapters:
-  - default_planning_request_adapters/ResolveConstraintFrames
-  - default_planning_request_adapters/ValidateWorkspaceBounds
-  - default_planning_request_adapters/CheckStartStateBounds
-  - default_planning_request_adapters/CheckStartStateCollision
-response_adapters:
-  - default_planning_response_adapters/AddTimeOptimalParameterization
-  - default_planning_response_adapters/ValidateSolution
-  - default_planning_response_adapters/DisplayMotionPath
+request_adapters: >-
+  default_planner_request_adapters/ResolveConstraintFrames
+  default_planner_request_adapters/FixWorkspaceBounds
+  default_planner_request_adapters/FixStartStateBounds
+  default_planner_request_adapters/FixStartStateCollision
+  default_planner_request_adapters/AddTimeOptimalParameterization
 
 planner_configs:
   SBL:
@@ -216,6 +213,64 @@ platform:
     - SPARS
     - SPARStwo
   projection_evaluator: joints(platform_joint)
+  longest_valid_segment_fraction: 0.05
+
+left_gripper:
+  default_planner_config: RRTConnect
+  planner_configs:
+    - SBL
+    - EST
+    - LBKPIECE
+    - BKPIECE
+    - KPIECE
+    - RRT
+    - RRTConnect
+    - RRTstar
+    - TRRT
+    - PRM
+    - PRMstar
+    - FMT
+    - BFMT
+    - PDST
+    - STRIDE
+    - BiTRRT
+    - LBTRRT
+    - BiEST
+    - ProjEST
+    - LazyPRM
+    - LazyPRMstar
+    - SPARS
+    - SPARStwo
+  projection_evaluator: joints(l_gripper_joint)
+  longest_valid_segment_fraction: 0.05
+
+right_gripper:
+  default_planner_config: RRTConnect
+  planner_configs:
+    - SBL
+    - EST
+    - LBKPIECE
+    - BKPIECE
+    - KPIECE
+    - RRT
+    - RRTConnect
+    - RRTstar
+    - TRRT
+    - PRM
+    - PRMstar
+    - FMT
+    - BFMT
+    - PDST
+    - STRIDE
+    - BiTRRT
+    - LBTRRT
+    - BiEST
+    - ProjEST
+    - LazyPRM
+    - LazyPRMstar
+    - SPARS
+    - SPARStwo
+  projection_evaluator: joints(r_gripper_joint)
   longest_valid_segment_fraction: 0.05
 
 

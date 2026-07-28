@@ -4,7 +4,7 @@
   <name>dual_rm_75b_moveit_config</name>
   <version>0.3.0</version>
   <description>
-     An automatically generated package with all the configuration and launch files for using the dual_rm_75b_description with the MoveIt Motion Planning Framework
+     An automatically generated package with all the configuration and launch files for using the r2d3_description with the MoveIt Motion Planning Framework
   </description>
   <maintainer email="haley@realman-robot.com">Haley</maintainer>
 
