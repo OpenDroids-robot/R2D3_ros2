@@ -17,7 +17,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       libgl1-mesa-dri mesa-utils libglx-mesa0 \
       python3-colcon-common-extensions python3-vcstool \
       sudo git curl wget nano less bash-completion util-linux \
+      ros-jazzy-rmw-zenoh-cpp \
     && rm -rf /var/lib/apt/lists/*
+
+# ros-jazzy-rmw-zenoh-cpp above is deliberately UNPINNED and deliberately in the
+# BASE image: an apt version pin would rot when the ROS repo drops old versions
+# (the image digest plus rogent.repos are the reproducibility record), and the
+# package ships the `rmw_zenohd` router that rogent mode supervises. Installing
+# it changes nothing by default -- RMW_IMPLEMENTATION stays FastDDS unless the
+# rogent compose overlay sets it.
 
 # The Debian noVNC package ships vnc.html but no index.html, so the bare
 # http://localhost:6080/ a developer will actually type serves a 404. Task 4's

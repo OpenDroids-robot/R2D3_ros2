@@ -25,6 +25,28 @@ source_ros() {
 }
 
 source_ros /opt/ros/jazzy/setup.sh
+
+# Rogent mode: "router up before sim nodes" is checked, not hoped. Every node
+# in this container speaks rmw_zenoh through the tcp/localhost:7447 router that
+# gui-start.sh supervises; launching without it means nodes that start, log
+# nothing useful, and match nothing. Bash's /dev/tcp probe needs no client
+# installed. Bounded: gui-start raced ahead of us only briefly if at all.
+if [ "${DROID_ROGENT:-}" = "1" ]; then
+  router_up="no"
+  for _ in $(seq 1 50); do
+    if (exec 3<>/dev/tcp/127.0.0.1/7447) 2>/dev/null; then
+      router_up="yes"
+      break
+    fi
+    sleep 0.2
+  done
+  if [ "$router_up" != "yes" ]; then
+    echo "launch-sim: rogent mode, but no zenoh router is listening on :7447 after 10s." >&2
+    echo "            See /tmp/rmw_zenohd.log; the router is started by gui-start.sh." >&2
+    exit 3
+  fi
+fi
+
 cd /ws
 colcon build
 source_ros /ws/install/setup.sh
