@@ -19,6 +19,7 @@ DROID = REPO_ROOT / "droid"
 PROBE_KEYS = (
     "DROID_OS", "DROID_ARCH", "DROID_GPU_VENDOR", "DROID_DRI",
     "DROID_JETSON", "DROID_DOCKER_GPU", "DROID_GPU_OVERRIDE",
+    "DROID_ROGENT_MODE",
 )
 
 
@@ -128,10 +129,35 @@ class TestOverrideValidation(unittest.TestCase):
         self.assertIn("turbo", err)
 
 
+class TestRogentMode(unittest.TestCase):
+    """Rogent mode is part of the RESOLVED configuration -- it swaps the image,
+    the RMW and the mounts -- so it must appear in resolve's output, which is
+    what feeds it into the drift fingerprint. `up --rogent` sets the input."""
+
+    def test_defaults_to_no(self):
+        code, out, _ = resolve(os="linux", arch="x86_64", gpu_vendor="none")
+        self.assertEqual(code, 0)
+        self.assertEqual(out["rogent"], "no")
+
+    def test_flag_env_resolves_to_yes(self):
+        code, out, _ = resolve(
+            os="linux", arch="x86_64", gpu_vendor="none", rogent_mode="1")
+        self.assertEqual(code, 0)
+        self.assertEqual(out["rogent"], "yes")
+
+    def test_rogent_is_orthogonal_to_the_tier(self):
+        code, out, _ = resolve(
+            os="linux", arch="x86_64", gpu_vendor="nvidia", docker_gpu="ok",
+            rogent_mode="1")
+        self.assertEqual(code, 0)
+        self.assertEqual(out["tier"], "nvidia")
+        self.assertEqual(out["rogent"], "yes")
+
+
 class TestOutputShape(unittest.TestCase):
     def test_emits_exactly_the_documented_keys_in_order(self):
         env_keys = ["os", "arch", "platform", "gpu_vendor",
-                    "dri", "jetson", "tier", "novnc_port"]
+                    "dri", "jetson", "tier", "rogent", "novnc_port"]
         proc = subprocess.run(
             [str(DROID), "resolve"],
             env={"PATH": "/usr/bin:/bin", "DROID_OS": "linux",

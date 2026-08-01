@@ -33,4 +33,21 @@ x11vnc -display "$DISPLAY" -forever -shared -nopw -localhost -quiet -rfbport 590
 websockify --web /usr/share/novnc 6080 localhost:5900 \
   >/tmp/websockify.log 2>&1 &
 
+# Rogent mode: exactly one zenoh router, owned by this session supervisor.
+# gui-start runs once per container start, so single-instance is true by
+# construction -- no pgrep dance. Supervised here rather than started by any
+# sim launch so the router (like the display and VNC above) outlives every
+# individual sim or agent process; rogent and the sim nodes all dial
+# tcp/localhost:7447. launch-sim.sh gates on that port actually listening.
+# DROID_ROGENT is set by container/docker-compose.rogent.yml only.
+if [ "${DROID_ROGENT:-}" = "1" ]; then
+  # The ROS setup scripts read variables they do not set; relax -u around
+  # sourcing only (same rationale as launch-sim.sh).
+  set +u
+  # shellcheck disable=SC1091
+  . /opt/ros/jazzy/setup.sh
+  set -u
+  rmw_zenohd >/tmp/rmw_zenohd.log 2>&1 &
+fi
+
 exec "$@"

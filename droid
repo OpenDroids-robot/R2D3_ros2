@@ -6,6 +6,7 @@
 set -eu
 
 IMAGE_REF="ghcr.io/open-droids-robot/r2d3-sim:jazzy"
+ROGENT_IMAGE_REF="ghcr.io/open-droids-robot/r2d3-sim:jazzy-rogent"
 NOVNC_PORT="6080"
 REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
 
@@ -18,9 +19,11 @@ R2D3 containerised simulation workspace.
 Usage: ./droid <command> [options]
 
 Commands:
-  up [--mujoco] [--gpu <tier>] [--recreate]
+  up [--mujoco] [--rogent] [--gpu <tier>] [--recreate]
                 Ensure the image, start the container, rebuild the simulation
                 subset, launch the simulation, and print the noVNC URL.
+  rogent        Open an interactive rogent agent session (REPL) in a container
+                started with `up --rogent`, once the simulation clock advances.
   shell         Open a shell in the running container.
   doctor        Re-run the platform probe and print raw + resolved values.
   resolve       Print the resolved configuration as key=value lines. No side effects.
@@ -29,6 +32,9 @@ Commands:
 
 Options for `up`:
   --mujoco      Use the MuJoCo backend instead of Gazebo (the default).
+  --rogent      Provision the rogent agent mode: derived image, zenoh RMW with
+                an in-container router, rogent source bind-mounted from
+                DROID_ROGENT_SRC. Run the agent afterwards with ./droid rogent.
   --gpu <tier>  Override platform detection. <tier> is `cpu` or `nvidia`.
   --recreate    Consent to recreating the container when its configuration has
                 drifted. This destroys container-local installations.
@@ -89,6 +95,13 @@ cmd_resolve() {
     tier="cpu"
   fi
 
+  # Rogent mode is part of the resolved configuration, not a launch detail:
+  # it swaps the image, the RMW and the mounts, so it must flow through the
+  # same fingerprint/drift machinery as the tier. `up --rogent` sets the
+  # DROID_ROGENT_MODE input; everything else leaves it unset.
+  rogent="no"
+  [ "${DROID_ROGENT_MODE:-}" = "1" ] && rogent="yes"
+
   printf 'os=%s\n' "$os"
   printf 'arch=%s\n' "$arch"
   printf 'platform=linux/%s\n' "$arch"
@@ -96,6 +109,7 @@ cmd_resolve() {
   printf 'dri=%s\n' "$dri"
   printf 'jetson=%s\n' "$jetson"
   printf 'tier=%s\n' "$tier"
+  printf 'rogent=%s\n' "$rogent"
   printf 'novnc_port=%s\n' "$NOVNC_PORT"
 }
 
@@ -230,6 +244,7 @@ load_resolved() {
   resolved="$(cmd_resolve)" || exit $?
   r_arch="$(printf '%s\n' "$resolved" | sed -n 's/^arch=//p')"
   r_tier="$(printf '%s\n' "$resolved" | sed -n 's/^tier=//p')"
+  r_rogent="$(printf '%s\n' "$resolved" | sed -n 's/^rogent=//p')"
   r_port="$(printf '%s\n' "$resolved" | sed -n 's/^novnc_port=//p')"
   # The fingerprint covers the resolved configuration AND the compose files that
   # actually govern this invocation. `docker compose up -d` recreates the
@@ -244,6 +259,10 @@ load_resolved() {
   if [ "$r_tier" = "nvidia" ]; then
     compose_files_content="$compose_files_content
 $(cat "$COMPOSE_DIR/docker-compose.nvidia.yml")"
+  fi
+  if [ "$r_rogent" = "yes" ]; then
+    compose_files_content="$compose_files_content
+$(cat "$COMPOSE_DIR/docker-compose.rogent.yml")"
   fi
 
   # Host uid/gid are interpolated into the compose file's `environment:` block
@@ -273,6 +292,11 @@ $(cat "$COMPOSE_DIR/docker-compose.nvidia.yml")"
     export DROID_SOFTWARE_GL="1"
   fi
 
+  # In rogent mode the composed service runs the DERIVED image, so that is the
+  # ref to materialise and fingerprint; the base ref otherwise.
+  active_image_ref="$IMAGE_REF"
+  [ "$r_rogent" = "yes" ] && active_image_ref="$ROGENT_IMAGE_REF"
+
   # Materialise the image before its digest is read, so the fingerprint captures
   # the digest the container is actually created with -- on the first `up` of a
   # fresh clone too, not the `no-local-image` placeholder. Attempt a registry
@@ -281,7 +305,7 @@ $(cat "$COMPOSE_DIR/docker-compose.nvidia.yml")"
   # present image is left untouched, so `compose up -d` below reuses exactly the
   # digest just fingerprinted and no `up` re-pulls a tag it already has.
   if [ "$mode" = "materialise" ] &&
-     ! docker image inspect --format '{{.Id}}' "$IMAGE_REF" >/dev/null 2>&1; then
+     ! docker image inspect --format '{{.Id}}' "$active_image_ref" >/dev/null 2>&1; then
     compose pull sim || compose build sim
   fi
 
@@ -292,23 +316,32 @@ $(cat "$COMPOSE_DIR/docker-compose.nvidia.yml")"
   # both failed offline) `docker image inspect` fails -- that must not break the
   # command, so it is mapped to a fixed, deterministic placeholder instead of
   # propagating the failure.
-  image_digest="$(docker image inspect --format '{{.Id}}' "$IMAGE_REF" 2>/dev/null)" ||
+  image_digest="$(docker image inspect --format '{{.Id}}' "$active_image_ref" 2>/dev/null)" ||
     image_digest="no-local-image"
 
-  r_fingerprint="$(printf '%s\n%s\nhost_uid=%s\nhost_gid=%s\nimage_digest=%s' \
-    "$resolved" "$compose_files_content" "$host_uid" "$host_gid" "$image_digest" |
+  # DROID_ROGENT_SRC is interpolated into the overlay's volume mounts and so
+  # participates in Compose's recreate decision, but -- like host_uid/gid -- it
+  # appears in neither the resolved text nor the compose files' literal text.
+  # Fold it in; empty outside rogent mode, so the default path is unchanged.
+  r_fingerprint="$(printf '%s\n%s\nhost_uid=%s\nhost_gid=%s\nimage_digest=%s\nrogent_src=%s' \
+    "$resolved" "$compose_files_content" "$host_uid" "$host_gid" "$image_digest" \
+    "${DROID_ROGENT_SRC:-}" |
     cksum | tr -d ' ')"
 
   export DROID_CONFIG_FINGERPRINT="$r_fingerprint"
 }
 
 compose() {
-  if [ "$r_tier" = "nvidia" ]; then
-    docker compose -f "$COMPOSE_DIR/docker-compose.yml" \
-                   -f "$COMPOSE_DIR/docker-compose.nvidia.yml" "$@"
-  else
-    docker compose -f "$COMPOSE_DIR/docker-compose.yml" "$@"
-  fi
+  # bash 3.2-safe indexed array (no associative features used). The teardown
+  # paths (shell/down/nuke/rogent) never set rogent mode and so run with the
+  # base file only -- exec/stop/down address the same project and service
+  # regardless of which overlays created the container.
+  compose_files=(-f "$COMPOSE_DIR/docker-compose.yml")
+  [ "$r_tier" = "nvidia" ] &&
+    compose_files=("${compose_files[@]}" -f "$COMPOSE_DIR/docker-compose.nvidia.yml")
+  [ "${r_rogent:-no}" = "yes" ] &&
+    compose_files=("${compose_files[@]}" -f "$COMPOSE_DIR/docker-compose.rogent.yml")
+  docker compose "${compose_files[@]}" "$@"
 }
 
 container_fingerprint() {
@@ -368,18 +401,52 @@ EOF
   exit 4
 }
 
+# Rogent mode runs the developer's own rogent checkout, bind-mounted -- never a
+# surprise network clone. The checkout is located via DROID_ROGENT_SRC, falling
+# back to the sibling directory rogent.repos materialises into, and validated
+# BEFORE compose ever interpolates it: compose would either hard-stop on the
+# `:?` guard with a less helpful message or, for the volume mount, let the
+# Docker engine create a root-owned empty directory at the missing path.
+require_rogent_src() {
+  src="${DROID_ROGENT_SRC:-$REPO_ROOT/../rogent-v3}"
+  if [ ! -f "$src/requirements.txt" ] || [ ! -f "$src/main.py" ]; then
+    cat >&2 <<EOF
+droid: rogent mode needs a rogent-v3 checkout, and none was found at
+  $src
+
+  Set DROID_ROGENT_SRC to an existing checkout, or materialise the pinned one
+  (rogent.repos records the repo + ref this workspace is paired with):
+
+    cd "$(cd "$REPO_ROOT/.." && pwd)" && vcs import --input R2D3_ros2/rogent.repos .
+
+  vcs is python3-vcstool. Then re-run ./droid up --rogent.
+EOF
+    exit 5
+  fi
+  DROID_ROGENT_SRC="$(cd "$src" && pwd)"
+  export DROID_ROGENT_SRC
+}
+
 cmd_up() {
   backend="gz"
   recreate="no"
+  rogent_mode="no"
   while [ $# -gt 0 ]; do
     case "$1" in
       --mujoco) backend="mujoco"; shift ;;
+      --rogent) rogent_mode="yes"; shift ;;
       --gpu) [ $# -ge 2 ] || die "droid up: --gpu needs a tier"
              DROID_GPU_OVERRIDE="$2"; export DROID_GPU_OVERRIDE; shift 2 ;;
       --recreate) recreate="yes"; shift ;;
       *) die "droid up: unknown option '$1' (try ./droid --help)" ;;
     esac
   done
+
+  if [ "$rogent_mode" = "yes" ]; then
+    DROID_ROGENT_MODE="1"
+    export DROID_ROGENT_MODE
+    require_rogent_src
+  fi
 
   require_docker
   load_resolved materialise
@@ -409,6 +476,10 @@ droid: open the simulation at
   http://localhost:$r_port/vnc.html?autoconnect=1&resize=scale
 
 EOF
+  # Printed before the foreground launch below, which blocks for the sim's
+  # whole lifetime -- afterwards would be too late to be useful.
+  [ "$rogent_mode" = "yes" ] &&
+    echo "droid: rogent mode -- once the sim is up, start the agent from another terminal with: ./droid rogent"
   compose exec -u droid sim /opt/droid/launch-sim.sh "$backend"
 }
 
@@ -431,6 +502,40 @@ cmd_shell() {
   require_docker
   resolve_for_teardown
   compose exec -u droid sim bash
+}
+
+# `up --rogent` provisions; `rogent` runs. This is a thin exec into the running
+# container: land in the bind-mounted rogent source and start the interactive
+# text-goal REPL (typed goals -- the PoC's driving mode). Anything after
+# `./droid rogent` is passed straight to rogent's main.py, so a one-shot goal
+# or --debug work unchanged. Uses the teardown-style resolve: exec addresses
+# the container regardless of which overlays created it.
+cmd_rogent() {
+  require_docker
+  resolve_for_teardown
+  compose exec -T sim test -f /run/droid/ready >/dev/null 2>&1 ||
+    die "droid rogent: no running container. Provision one with: ./droid up --rogent [--mujoco]"
+  marker="$(compose exec -T sim printenv DROID_ROGENT 2>/dev/null | tr -d '\r')" || marker=""
+  [ "$marker" = "1" ] ||
+    die "droid rogent: the running container was not started with --rogent. Re-provision with: ./droid up --rogent --recreate"
+
+  # Sim-ready guard: /clock must be ADVANCING, not merely present. The known
+  # failure mode in this repo is a stalled clock with every process still
+  # alive (headless render death), so two samples are compared rather than
+  # asserting a single message arrived. The exec session inherits the
+  # container-wide RMW_IMPLEMENTATION=rmw_zenoh_cpp, so this also proves the
+  # zenoh graph rogent is about to join actually carries sim traffic.
+  compose exec -T -u droid sim bash -c '
+    set +u; . /opt/ros/jazzy/setup.sh
+    [ -f /ws/install/setup.sh ] && . /ws/install/setup.sh
+    set -u
+    a="$(timeout 5 ros2 topic echo /clock --once 2>/dev/null)"
+    sleep 1
+    b="$(timeout 5 ros2 topic echo /clock --once 2>/dev/null)"
+    [ -n "$a" ] && [ "$a" != "$b" ]
+  ' || die "droid rogent: the simulation clock is not advancing. Launch the sim first (./droid up --rogent --mujoco) and wait for it to come up, then retry."
+
+  compose exec -u droid -w /rogent sim python3 main.py "$@"
 }
 
 cmd_down() {
@@ -464,6 +569,7 @@ case "$1" in
   resolve) shift; cmd_resolve "$@" ;;
   doctor) shift; cmd_doctor "$@" ;;
   up) shift; cmd_up "$@" ;;
+  rogent) shift; cmd_rogent "$@" ;;
   shell) shift; cmd_shell "$@" ;;
   down) shift; cmd_down "$@" ;;
   nuke) shift; cmd_nuke "$@" ;;

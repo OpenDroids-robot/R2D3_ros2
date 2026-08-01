@@ -44,7 +44,8 @@ Do not judge the `cpu` tier by frame rate — judge the `nvidia` tier by that.
 
 | Command | What it does | What it preserves / destroys |
 |---|---|---|
-| `./droid up [--mujoco] [--gpu <tier>] [--recreate]` | Ensures the image, starts the container, rebuilds the simulation subset, launches the simulation, prints the noVNC URL. `--mujoco` selects the MuJoCo backend instead of the default Gazebo. `--gpu <tier>` overrides platform detection (`cpu` or `nvidia`). `--recreate` consents to recreating the container when its configuration has drifted. | `--recreate` destroys container-local installs; otherwise nothing. |
+| `./droid up [--mujoco] [--rogent] [--gpu <tier>] [--recreate]` | Ensures the image, starts the container, rebuilds the simulation subset, launches the simulation, prints the noVNC URL. `--mujoco` selects the MuJoCo backend instead of the default Gazebo. `--rogent` provisions the rogent agent mode (see §13). `--gpu <tier>` overrides platform detection (`cpu` or `nvidia`). `--recreate` consents to recreating the container when its configuration has drifted. | `--recreate` destroys container-local installs; otherwise nothing. |
+| `./droid rogent [args…]` | Opens an interactive rogent agent session (the text-goal REPL) in a container provisioned with `up --rogent`, after verifying the simulation clock is advancing. Extra arguments go to rogent's `main.py`. | Nothing. |
 | `./droid shell` | Opens a shell in the running container. | Nothing. |
 | `./droid doctor` | Re-runs the platform probe and prints raw + resolved values. | Nothing — read-only, though it does attempt a real `docker run --gpus all` (see below). |
 | `./droid resolve` | Prints the resolved configuration as `key=value` lines. Pure — no side effects. | Nothing. |
@@ -168,6 +169,7 @@ Stated honestly:
 | amd64, software-rendering tier, MuJoCo | **Hand-verified** — `./droid up --mujoco` reaches a running sim on a warm cache hit: `/clock` advancing, six controllers active, MuJoCo viewer + RViz in the browser |
 | amd64 image build + workspace compile | Verified locally (the image builds and the 15-package subset compiles inside it) |
 | amd64 and arm64 image build in CI | Expected to pass; this branch has not yet been pushed, so CI has not actually run it yet |
+| Rogent mode (`up --rogent`, zenoh graph, `./droid rogent`) | **Not verified** — static consistency checks only (`container/test/`); the derived image has not been built nor the zenoh bringup exercised end-to-end |
 | NVIDIA accelerated tier | **Not verified** |
 | Jetson | **Not verified** |
 | arm64 at runtime | **Not booted** — only expected to build once CI runs |
@@ -193,14 +195,47 @@ is required in it for weight caching: downloaded model weights are cached
 on a volume and persist across `./droid down` / `./droid up` cycles (though
 not across `./droid nuke`).
 
-## 13. Naming
+## 13. Rogent mode
+
+`./droid up --rogent` provisions an opt-in agent mode: the
+[rogent-v3](https://github.com/Open-Droids-robot/rogent-v3) agent running
+against this simulation, entirely on local models. It is an overlay in the
+same pattern as the nvidia tier — the default mode's composed service is
+untouched, and toggling `--rogent` on or off is a configuration change that
+requires `--recreate`.
+
+What the overlay changes:
+
+- **Image** — a derived image (`container/Dockerfile.rogent`) adds rogent's
+  python dependencies, Kokoro TTS and `paplay` on top of the base image.
+- **Transport** — `RMW_IMPLEMENTATION=rmw_zenoh_cpp` container-wide, with one
+  supervised `rmw_zenohd` router started at container start; every launch in
+  rogent mode gates on the router actually listening on `:7447`.
+- **Rogent source** — bind-mounted from `DROID_ROGENT_SRC` (default: a
+  `rogent-v3` checkout beside this repo). The paired repo + ref is pinned in
+  `rogent.repos`; a fresh machine materialises it once with
+  `cd <parent of R2D3_ros2> && vcs import --input R2D3_ros2/rogent.repos .`
+  If the checkout is missing, `up --rogent` refuses with that remediation —
+  it never clones on its own.
+- **Reachability** — `host.docker.internal` maps to the host (Ollama serves
+  models there on `:11434`), and the host Pulse socket is mounted so speech is
+  audible on the host's speakers. On hosts without a Pulse socket, speech
+  degrades and everything else works; rogent mode is Linux-first.
+
+The workflow is two terminals: `./droid up --rogent --mujoco` provisions and
+launches the sim, then `./droid rogent` opens the interactive agent REPL —
+guarded by a check that the simulation clock is actually advancing. Local
+models are the no-keys fallback: with Google API keys present in rogent's
+environment it uses Gemini, with no keys it runs fully local.
+
+## 14. Naming
 
 Factory AI ships a CLI that is also called `droid`. Running `./droid` from
 the repository root is unambiguous regardless of what else is on your
 `PATH`. Putting this repo's `droid` on your `PATH` is optional, and if you
 do, be aware of that name collision.
 
-## 14. Troubleshooting
+## 15. Troubleshooting
 
 **GPU unreachable** (NVIDIA GPU detected but Docker can't acquire it):
 run `./droid doctor` to see the diagnosis and remediation commands, or skip
