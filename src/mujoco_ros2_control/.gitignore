@@ -1,0 +1,17 @@
+# Python
+*.pyc
+
+# MuJoCo logs
+MUJOCO_LOG.TXT
+
+# pixi environments
+.pixi/*
+!.pixi/config.toml
+
+# Build output
+build/*
+install/*
+log/*
+
+# Cloned MuJoCo src
+mujoco_ros2_control/mujoco/*

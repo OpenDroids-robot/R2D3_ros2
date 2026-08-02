@@ -1,0 +1,9 @@
+<library path="mujoco_ros2_control">
+    <class name="mujoco_ros2_control/MujocoSystemInterface"
+        type="mujoco_ros2_control::MujocoSystemInterface"
+        base_class_type="hardware_interface::SystemInterface">
+        <description>
+            Hardware interface that wraps a MuJoCo model simulation, based on upstream simulate libraries.
+        </description>
+    </class>
+</library>

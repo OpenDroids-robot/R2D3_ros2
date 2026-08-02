@@ -1,0 +1,116 @@
+name: build_and_test
+
+on:
+  push:
+    tags:
+      - '*'
+    branches:
+      - main
+      - humble
+      - jazzy
+      - '*-devel'
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+    branches:
+      - '*'
+  workflow_dispatch:
+
+# Do not run multiple jobs for the same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build_and_test:
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        # TODO: Re-enable rolling when keys are available:
+        # https://github.com/ros-controls/mujoco_ros2_control/issues/178
+        # ros_distro: [humble, jazzy, kilted, rolling]
+        ros_distro: [humble, jazzy, kilted]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: mujoco_ros2_control
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: docker/Dockerfile
+          tags: ${{ steps.meta.outputs.tags }}
+          target: mujoco_ros
+          build-args: |
+            ROS_DISTRO=${{ matrix.ros_distro }}
+          push: false
+          load: true
+          cache-from: type=gha,scope=ros-${{ matrix.ros_distro }}
+          cache-to: type=gha,mode=max,scope=ros-${{ matrix.ros_distro }}
+      - name: Run tests
+        run: |
+          docker run --rm \
+            ${{ steps.meta.outputs.tags }} \
+            bash -c "
+              colcon test &&
+              colcon test-result --verbose
+            "
+
+  pixi_jazzy_build_and_test:
+    timeout-minutes: 15
+    env:
+      SCCACHE_DIR: ${{ github.workspace }}/.sccache
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+      - name: Build Docker image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: docker/Dockerfile.pixi
+          push: false
+          load: true
+          tags: mujoco_ros2_control_pixi:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Cache sccache
+        uses: actions/cache@v5
+        with:
+          path: |
+            ${{ env.SCCACHE_DIR }}
+          key: ${{ runner.os }}-sccache-${{ github.head_ref || github.ref_name }}
+          restore-keys: |
+            ${{ runner.os }}-sccache-main
+            ${{ runner.os }}-sccache-
+      # Run pixi jobs, and ensure the cache is world readable.
+      - name: Build and test in container
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            -v ${{ github.workspace }}/.sccache:/workspace/.sccache \
+            -w /workspace \
+            -e SCCACHE_DIR=/workspace/.sccache \
+            mujoco_ros2_control_pixi:ci \
+            bash -c "
+              pixi run setup-colcon && \
+              pixi run build && \
+              pixi run test && \
+              pixi run test-result && \
+              chmod -R a+rwX /workspace/.sccache
+            "
