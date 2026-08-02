@@ -535,7 +535,17 @@ cmd_rogent() {
     [ -n "$a" ] && [ "$a" != "$b" ]
   ' || die "droid rogent: the simulation clock is not advancing. Launch the sim first (./droid up --rogent --mujoco) and wait for it to come up, then retry."
 
-  compose exec -u droid -w /rogent sim python3 main.py "$@"
+  # Sourced, not bare python3: rogent's sim nav agent is an rclpy node, and
+  # rclpy only exists on sys.path inside the ROS environment (the derived
+  # image deliberately filters PyPI's fake rclpy out of the pip install).
+  # Without this the nav2 bridge import fails and navigation silently
+  # degrades to stubs.
+  compose exec -u droid -w /rogent sim bash -c '
+    set +u; . /opt/ros/jazzy/setup.sh
+    [ -f /ws/install/setup.sh ] && . /ws/install/setup.sh
+    set -u
+    exec python3 main.py "$@"
+  ' rogent-main "$@"
 }
 
 cmd_down() {

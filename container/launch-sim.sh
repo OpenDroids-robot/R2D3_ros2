@@ -83,7 +83,20 @@ case "$BACKEND" in
     # starts promptly. A feature branch or local description edit changes the
     # generated robot description, so the content-addressed cache misses and the
     # full multi-minute reconversion runs. That is correct behaviour, not a hang.
-    launch_with_rviz ros2 launch r2d3_mujoco mujoco_sim.launch.py
+    #
+    # Rogent mode needs the FULL stack: the agent's nav2 bridge dispatches to
+    # Nav2's /navigate_to_pose, so the sim-only launch leaves it dead on
+    # arrival. bringup_sim.launch.py is the sim counterpart of the robot's
+    # `ros2 launch rogent rogent.launch.py` -- sim + Nav2 behind the readiness
+    # gate. use_rviz:=false because launch_with_rviz owns the viewer here;
+    # use_moveit:=false because sim manipulation is faked (rogent-v3#2), so
+    # move_group would only burn CPU beside the VLM. Default mode is unchanged.
+    if [ "${DROID_ROGENT:-}" = "1" ]; then
+      launch_with_rviz ros2 launch r2d3_mujoco bringup_sim.launch.py \
+        use_rviz:=false use_moveit:=false
+    else
+      launch_with_rviz ros2 launch r2d3_mujoco mujoco_sim.launch.py
+    fi
     ;;
   *)
     echo "launch-sim: unknown backend '$BACKEND' (expected gz or mujoco)" >&2

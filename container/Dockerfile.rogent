@@ -32,11 +32,21 @@ COPY --from=rogent requirements.txt /tmp/rogent-requirements.txt
 #     among it) is built against the distro numpy 1.x; an unconstrained pip
 #     resolve would upgrade to 2.x and break it.
 # The torch payload kokoro pulls in is accepted deliberately (proven-first,
-# optimise later -- see rogent-v3#11).
+# optimise later -- see rogent-v3#11). The en_core_web_sm wheel is spaCy's
+# English model, which Kokoro's G2P otherwise pip-installs AT RUNTIME on first
+# synthesis -- PEP 668 blocks that inside the image and kills the agent.
+# --ignore-installed: several of rogent's deps need newer versions of packages
+# the base image got from apt (typing_extensions, PyYAML, ...), and pip cannot
+# uninstall Debian-owned packages (no RECORD file). Instead of uninstalling,
+# install fresh copies to /usr/local, which precedes the apt dist-packages on
+# sys.path; the constraints file keeps the copies ABI-compatible with the ROS
+# stack (numpy 1.x for cv_bridge).
 RUN grep -vE '^rclpy\b' /tmp/rogent-requirements.txt > /tmp/rogent-reqs-filtered.txt && \
     printf 'numpy<2\n' > /tmp/rogent-constraints.txt && \
-    pip3 install --no-cache-dir --break-system-packages \
+    pip3 install --no-cache-dir --break-system-packages --ignore-installed \
+      --timeout 120 --retries 10 \
       -c /tmp/rogent-constraints.txt \
       -r /tmp/rogent-reqs-filtered.txt \
-      "kokoro>=0.3.4" soundfile && \
+      "kokoro>=0.3.4" soundfile \
+      "en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl" && \
     rm /tmp/rogent-requirements.txt /tmp/rogent-reqs-filtered.txt /tmp/rogent-constraints.txt

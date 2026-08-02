@@ -47,7 +47,9 @@ if [ "${DROID_ROGENT:-}" = "1" ]; then
   # shellcheck disable=SC1091
   . /opt/ros/jazzy/setup.sh
   set -u
-  rmw_zenohd >/tmp/rmw_zenohd.log 2>&1 &
+  # Not on PATH: the setup script doesn't expose package-private executables;
+  # this is the same binary `ros2 run rmw_zenoh_cpp rmw_zenohd` resolves to.
+  /opt/ros/jazzy/lib/rmw_zenoh_cpp/rmw_zenohd >/tmp/rmw_zenohd.log 2>&1 &
 fi
 
 exec "$@"

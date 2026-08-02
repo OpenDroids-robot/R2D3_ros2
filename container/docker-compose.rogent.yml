@@ -28,6 +28,17 @@ services:
       DROID_ROGENT: "1"
       # Fixed target path decouples in-container config from the host uid.
       PULSE_SERVER: unix:/run/host-pulse/native
+      # The LLM seam rogent-v3 PR #15 built for this container: flip the
+      # bind-mounted checkout to local models with zero file divergence.
+      # Ollama serves on the HOST (see extra_hosts below). Default is the
+      # zero-cloud dev posture; export DROID_ROGENT_LLM_BACKEND=google on the
+      # host (with keys in rogent's env) to run Gemini instead (rogent-v3#11).
+      ROGENT_LLM_BACKEND: ${DROID_ROGENT_LLM_BACKEND:-ollama}
+      ROGENT_LLM_BASE_URL: http://host.docker.internal:11434
+      # Kokoro TTS on the container's CUDA runtime dies without a traceback
+      # while the host LLM server holds the 8 GB card — the CPU pin is the
+      # fallback rogent-v3#9 accepted for exactly this contention.
+      ROGENT_SPEECH_DEVICE: cpu
     extra_hosts:
       # Ollama runs on the HOST (GPU passthrough into the container is flaky);
       # rogent reaches it at http://host.docker.internal:11434.
