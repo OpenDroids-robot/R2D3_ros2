@@ -6,14 +6,11 @@ controller_manager:
     left_arm_controller:
       type: joint_trajectory_controller/JointTrajectoryController
 
-
     right_arm_controller:
       type: joint_trajectory_controller/JointTrajectoryController
 
-
     platform_controller:
       type: position_controllers/GripperActionController
-
 
     joint_state_broadcaster:
       type: joint_state_broadcaster/JointStateBroadcaster

@@ -7,4 +7,19 @@ moveit_setup_assistant_config:
   package_settings:
     author_name: Haley
     author_email: haleyli@realman-robot.com
-    generated_timestamp: 1785259178
+    generated_timestamp: 1732619152
+  control_xacro:
+    command:
+      - position
+    state:
+      - position
+      - velocity
+  modified_urdf:
+    xacros:
+      - control_xacro
+  control_xacro:
+    command:
+      - position
+    state:
+      - position
+      - velocity

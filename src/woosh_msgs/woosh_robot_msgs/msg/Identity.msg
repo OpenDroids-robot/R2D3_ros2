@@ -1,2 +1,0 @@
-# Robot Identifier
-string name

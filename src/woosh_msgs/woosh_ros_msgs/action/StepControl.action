@@ -1,8 +1,0 @@
-# Goal
-woosh_ros_msgs/StepControl arg
----
-# Result
-woosh_ros_msgs/Feedback ret
----
-# Feedback
-woosh_ros_msgs/Feedback fb

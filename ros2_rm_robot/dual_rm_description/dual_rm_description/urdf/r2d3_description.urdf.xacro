@@ -2,58 +2,86 @@
 
 <robot name="r2d3_description" xmlns:xacro="http://ros.org/wiki/xacro">
 
-  <!-- TEMPORARILY CHANGE THESE DEFAULTS FOR THE SETUP ASSISTANT -->
-  <xacro:arg name="arm_model" default="65b"/>
-  <xacro:property name="arm_model" value="$(arg arm_model)"/>
+    <xacro:arg name="arm_model" default="65b"/>
+    <xacro:property name="arm_model" value="$(arg arm_model)"/>
 
-  <xacro:arg name="gripper_type" default="4c2"/>
-  <xacro:property name="gripper_type" value="$(arg gripper_type)"/>
+    <xacro:arg name="gripper_type" default="$(optenv GRIPPER_TYPE dummy)"/>
+    <xacro:property name="gripper_type" value="$(arg gripper_type)"/>
 
-  <!-- ======================================================= -->
-  <!-- Shared components (identical for both arm variants)     -->
-  <!-- ======================================================= -->
-  <xacro:include filename="$(find dual_rm_description)/urdf/materials/colors.urdf.xacro"/>
-  <xacro:include filename="$(find dual_rm_description)/urdf/agv/woosh_agv.urdf.xacro"/>
-  <xacro:include filename="$(find dual_rm_description)/urdf/body/body_head_platform.urdf.xacro"/>
+    <!-- ═══════════════════════════════════════════════════════════
+         Shared components (identical for both arm variants)
+         ═══════════════════════════════════════════════════════════ -->
+    <xacro:include filename="$(find dual_rm_description)/urdf/materials/colors.urdf.xacro"/>
+    <xacro:include filename="$(find dual_rm_description)/urdf/agv/woosh_agv.urdf.xacro"/>
+    <xacro:include filename="$(find dual_rm_description)/urdf/body/body_head_platform.urdf.xacro"/>
+    <xacro:include filename="$(find dual_rm_description)/urdf/sensors/d435.urdf.xacro"/>
 
-  <!-- ======================================================= -->
-  <!-- Arm-variant components (selected by arm_model argument) -->
-  <!-- ======================================================= -->
-  <xacro:include filename="$(find dual_rm_description)/urdf/arms/$(arg arm_model)/left_arm.urdf.xacro"/>
-  <xacro:include filename="$(find dual_rm_description)/urdf/arms/$(arg arm_model)/right_arm.urdf.xacro"/>
-  <xacro:include filename="$(find dual_rm_description)/urdf/arms/$(arg arm_model)/joints.urdf.xacro"/>
+    <!-- ═══════════════════════════════════════════════════════════
+         Arm-variant components (selected by arm_model argument)
+         ═══════════════════════════════════════════════════════════ -->
+    <xacro:include filename="$(find dual_rm_description)/urdf/arms/$(arg arm_model)/left_arm.urdf.xacro"/>
+    <xacro:include filename="$(find dual_rm_description)/urdf/arms/$(arg arm_model)/right_arm.urdf.xacro"/>
+    <xacro:include filename="$(find dual_rm_description)/urdf/arms/$(arg arm_model)/joints.urdf.xacro"/>
 
-  <!-- ======================================================= -->
-  <!-- Gripper Selection                                       -->
-  <!-- ======================================================= -->
-  <xacro:if value="${gripper_type == 'dummy'}">
-    <!-- Load the original dummy hands -->
-    <xacro:include filename="$(find dual_rm_description)/urdf/arms/$(arg arm_model)/left_hand.urdf.xacro"/>
-    <xacro:include filename="$(find dual_rm_description)/urdf/arms/$(arg arm_model)/right_hand.urdf.xacro"/>
-  </xacro:if>
-
-  <xacro:if value="${gripper_type == '4c2'}">
-    <!-- Load the new 4c2 Gripper Macro -->
-    <xacro:include filename="$(find dual_rm_description)/urdf/grippers/4c2_gripper.urdf.xacro"/>
-    
-    <!-- Attach to the 6th link for the 65b model -->
-    <xacro:if value="${arm_model == '65b'}">
-      <xacro:gripper_4c2 prefix="l_" parent_link="l_link6" />
-      <xacro:gripper_4c2 prefix="r_" parent_link="r_link6" />
+    <!-- ═══════════════════════════════════════════════════════════
+         Gripper Selection (selected by gripper_type argument)
+         ═══════════════════════════════════════════════════════════ -->
+    <xacro:if value="${gripper_type == 'dummy'}">
+        <!-- Load the original dummy hands -->
+        <xacro:include filename="$(find dual_rm_description)/urdf/arms/$(arg arm_model)/left_hand.urdf.xacro"/>
+        <xacro:include filename="$(find dual_rm_description)/urdf/arms/$(arg arm_model)/right_hand.urdf.xacro"/>
     </xacro:if>
 
-    <!-- Attach to the 7th link for the 75b model -->
-    <xacro:if value="${arm_model == '75b'}">
-      <xacro:gripper_4c2 prefix="l_" parent_link="l_link7" />
-      <xacro:gripper_4c2 prefix="r_" parent_link="r_link7" />
-    </xacro:if>
-  </xacro:if>
+    <xacro:if value="${gripper_type == '4c2'}">
+        <!-- Load the new 4c2 Gripper Macro -->
+        <xacro:include filename="$(find dual_rm_description)/urdf/grippers/4c2_gripper.urdf.xacro"/>
+        
+        <!-- Attach to the 6th link for the 65b model -->
+        <xacro:if value="${arm_model == '65b'}">
+            <xacro:gripper_4c2 prefix="l_" parent_link="l_link6" />
+            <xacro:gripper_4c2 prefix="r_" parent_link="r_link6" />
+        </xacro:if>
 
-  <!-- ======================================================= -->
-  <!-- Transmissions (Only Useful For Gazebo Classic)          -->
-  <!-- ======================================================= -->
-  <xacro:include filename="$(find dual_rm_description)/urdf/transmissions/body_head_platform_transmission.xacro"/>
-  <xacro:include filename="$(find dual_rm_description)/urdf/arms/$(arg arm_model)/left_arm_transmission.xacro"/>
-  <xacro:include filename="$(find dual_rm_description)/urdf/arms/$(arg arm_model)/right_arm_transmission.xacro"/>
+        <!-- Attach to the 7th link for the 75b model -->
+        <xacro:if value="${arm_model == '75b'}">
+            <xacro:gripper_4c2 prefix="l_" parent_link="l_link7" />
+            <xacro:gripper_4c2 prefix="r_" parent_link="r_link7" />
+        </xacro:if>
+    </xacro:if>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Transmissions (Only Useful For Gazebo Classic)
+         ═══════════════════════════════════════════════════════════ -->
+    <xacro:include filename="$(find dual_rm_description)/urdf/transmissions/body_head_platform_transmission.xacro"/>
+    <xacro:include filename="$(find dual_rm_description)/urdf/arms/$(arg arm_model)/left_arm_transmission.xacro"/>
+    <xacro:include filename="$(find dual_rm_description)/urdf/arms/$(arg arm_model)/right_arm_transmission.xacro"/>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Wrist RealSense D435 cameras
+
+         Mount pose and aim (pan/tilt) come from config/wrist_cameras.yaml,
+         which both sims read - edit there to re-aim, not here. Frames only;
+         the housing is already part of the wrist link meshes.
+         ═══════════════════════════════════════════════════════════ -->
+    <xacro:property name="wrist_cam_cfg"
+                    value="${xacro.load_yaml('$(find dual_rm_description)/config/wrist_cameras.yaml')[arm_model]}"/>
+
+    <xacro:macro name="_wrist_camera" params="side">
+      <!-- NOTE: do not name this property 'e' - xacro reserves e (Euler's
+           number) and silently redefines it. -->
+      <xacro:property name="entry" value="${wrist_cam_cfg[side]}"/>
+      <!-- Every ANGLE in wrist_cameras.yaml is in DEGREES (it is a knob humans
+           turn); URDF wants radians, so convert here at the one boundary.
+           `xyz` is metres and passes through untouched. -->
+      <xacro:d435_camera name="${side}_wrist" parent="${entry['parent']}"
+                         pan="${radians(entry['pan'])}"
+                         tilt="${radians(entry['tilt'])}">
+        <origin xyz="${entry['xyz'][0]} ${entry['xyz'][1]} ${entry['xyz'][2]}"
+                rpy="${radians(entry['rpy'][0])} ${radians(entry['rpy'][1])} ${radians(entry['rpy'][2])}"/>
+      </xacro:d435_camera>
+    </xacro:macro>
+
+    <xacro:_wrist_camera side="left"/>
+    <xacro:_wrist_camera side="right"/>
 
 </robot>

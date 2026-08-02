@@ -12,7 +12,6 @@ from launch.actions import (
     IncludeLaunchDescription,
     RegisterEventHandler,
 )
-from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import (
@@ -20,7 +19,6 @@ from launch.substitutions import (
     FindExecutable,
     LaunchConfiguration,
     PathJoinSubstitution,
-    PythonExpression,
 )
 from launch_ros.actions import Node
 from launch_ros.descriptions import ParameterValue
@@ -46,15 +44,9 @@ def generate_launch_description():
         'gz_verbosity', default_value='1',
         description='Gz Sim verbosity level (0-4)',
     )
-    declare_gripper_type = DeclareLaunchArgument(
-        'gripper_type', default_value='dummy',
-        description='Choose gripper type: dummy or 4c2',
-    )
-    
     robot_model = LaunchConfiguration('robot_model')
     world = LaunchConfiguration('world')
     gz_verbosity = LaunchConfiguration('gz_verbosity')
-    gripper_type = LaunchConfiguration('gripper_type')
 
     # ── Unified sim xacro with arm_model argument ─────────────────
     urdf_xacro_path = PathJoinSubstitution([
@@ -67,7 +59,6 @@ def generate_launch_description():
         PathJoinSubstitution([FindExecutable(name='xacro')]),
         ' ', urdf_xacro_path,
         ' arm_model:=', robot_model,
-        ' gripper_type:=', gripper_type,
     ])
     robot_description_content = ParameterValue(xacro_cmd, value_type=str)
     robot_description = {'robot_description': robot_description_content}
@@ -79,9 +70,6 @@ def generate_launch_description():
         'GZ_SIM_RESOURCE_PATH', os.path.join(pkg_desc, 'meshes', 'arms_65b'))
     set_resource_path_arms75 = AppendEnvironmentVariable(
         'GZ_SIM_RESOURCE_PATH', os.path.join(pkg_desc, 'meshes', 'arms_75b'))
-    # Resource path for the new shared grippers folder
-    set_resource_path_grippers = AppendEnvironmentVariable(
-        'GZ_SIM_RESOURCE_PATH', os.path.join(pkg_desc, 'meshes', 'grippers'))
     set_resource_path_desc = AppendEnvironmentVariable(
         'GZ_SIM_RESOURCE_PATH', str(Path(pkg_desc).parent.resolve()))
     set_resource_path_worlds = AppendEnvironmentVariable(
@@ -136,11 +124,44 @@ def generate_launch_description():
             '/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock',
             '/scan@sensor_msgs/msg/LaserScan[gz.msgs.LaserScan',
             '/imu@sensor_msgs/msg/Imu[gz.msgs.IMU',
-            # Depth camera (rgbd_camera sensor)
-            '/camera/image@sensor_msgs/msg/Image[gz.msgs.Image',
-            '/camera/depth_image@sensor_msgs/msg/Image[gz.msgs.Image',
-            '/camera/camera_info@sensor_msgs/msg/CameraInfo[gz.msgs.CameraInfo',
-            '/camera/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked',
+            # ZED 2 head camera: two rgbd_camera sensors (topics zed/left,
+            # zed/right). Right depth/points exist in Gz but are not bridged.
+            '/zed/left/image@sensor_msgs/msg/Image[gz.msgs.Image',
+            '/zed/left/camera_info@sensor_msgs/msg/CameraInfo[gz.msgs.CameraInfo',
+            '/zed/left/depth_image@sensor_msgs/msg/Image[gz.msgs.Image',
+            '/zed/left/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked',
+            '/zed/right/image@sensor_msgs/msg/Image[gz.msgs.Image',
+            '/zed/right/camera_info@sensor_msgs/msg/CameraInfo[gz.msgs.CameraInfo',
+            # Wrist D435s: one rgbd_camera per wrist (topics left_wrist,
+            # right_wrist).
+            '/left_wrist/image@sensor_msgs/msg/Image[gz.msgs.Image',
+            '/left_wrist/camera_info@sensor_msgs/msg/CameraInfo[gz.msgs.CameraInfo',
+            '/left_wrist/depth_image@sensor_msgs/msg/Image[gz.msgs.Image',
+            '/left_wrist/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked',
+            '/right_wrist/image@sensor_msgs/msg/Image[gz.msgs.Image',
+            '/right_wrist/camera_info@sensor_msgs/msg/CameraInfo[gz.msgs.CameraInfo',
+            '/right_wrist/depth_image@sensor_msgs/msg/Image[gz.msgs.Image',
+            '/right_wrist/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked',
+        ],
+        remappings=[
+            # Gz topic names -> the real zed-ros2-wrapper (v5.x) topic contract.
+            ('/zed/left/image', '/zed/zed_node/left/color/rect/image'),
+            ('/zed/left/camera_info', '/zed/zed_node/left/color/rect/camera_info'),
+            ('/zed/left/depth_image', '/zed/zed_node/depth/depth_registered'),
+            ('/zed/left/points', '/zed/zed_node/point_cloud/cloud_registered'),
+            ('/zed/right/image', '/zed/zed_node/right/color/rect/image'),
+            ('/zed/right/camera_info', '/zed/zed_node/right/color/rect/camera_info'),
+            # Gz topic names -> the real realsense2_camera topic contract, so
+            # swapping in real D435s is a launch-file change with no consumer
+            # edits.
+            ('/left_wrist/image', '/left_wrist/color/image_raw'),
+            ('/left_wrist/camera_info', '/left_wrist/color/camera_info'),
+            ('/left_wrist/depth_image', '/left_wrist/depth/image_rect_raw'),
+            ('/left_wrist/points', '/left_wrist/depth/color/points'),
+            ('/right_wrist/image', '/right_wrist/color/image_raw'),
+            ('/right_wrist/camera_info', '/right_wrist/color/camera_info'),
+            ('/right_wrist/depth_image', '/right_wrist/depth/image_rect_raw'),
+            ('/right_wrist/points', '/right_wrist/depth/color/points'),
         ],
         parameters=[{'use_sim_time': False}],
         output='screen',
@@ -167,17 +188,27 @@ def generate_launch_description():
         package='controller_manager', executable='spawner',
         arguments=['platform_controller'],
     )
-    
-    # Conditionally spawn the gripper controllers only if the 4c2 is selected
-    l_gripper_controller_spawner = Node(
+    neck_controller_spawner = Node(
         package='controller_manager', executable='spawner',
-        arguments=['l_gripper_controller'],
-        condition=IfCondition(PythonExpression(["'", gripper_type, "' == '4c2'"]))
+        arguments=['neck_controller'],
     )
-    r_gripper_controller_spawner = Node(
-        package='controller_manager', executable='spawner',
-        arguments=['r_gripper_controller'],
-        condition=IfCondition(PythonExpression(["'", gripper_type, "' == '4c2'"]))
+
+    # ── Neck servo bridge: real servo contract → /neck_controller/commands ──
+    neck_servo_bridge = Node(
+        package='servo_sim_bridge',
+        executable='neck_servo_bridge',
+        name='neck_servo_bridge',
+        output='screen',
+        parameters=[{'use_sim_time': True}],
+    )
+
+    # ── Sim-only ZED shim: side-by-side stereo + rgb alias ──────
+    stereo_concat = Node(
+        package='dual_rm_simulation',
+        executable='stereo_concat.py',
+        name='stereo_concat',
+        output='screen',
+        parameters=[{'use_sim_time': True}],
     )
 
     # ── Event sequencing: spawn → JSB → other controllers ────────
@@ -195,8 +226,7 @@ def generate_launch_description():
                 left_arm_controller_spawner,
                 right_arm_controller_spawner,
                 platform_controller_spawner,
-                l_gripper_controller_spawner,  # ADDED
-                r_gripper_controller_spawner,  # ADDED
+                neck_controller_spawner,
             ],
         )
     )
@@ -205,12 +235,10 @@ def generate_launch_description():
         declare_robot_model,
         declare_world,
         declare_gz_verbosity,
-        declare_gripper_type,
 
         set_resource_path_common,
         set_resource_path_arms65,
         set_resource_path_arms75,
-        set_resource_path_grippers,
         set_resource_path_desc,
         set_resource_path_worlds,
         gz_sim,
@@ -219,4 +247,6 @@ def generate_launch_description():
         spawn_entity,
         evt_spawn_done,
         evt_jsb_done,
+        neck_servo_bridge,
+        stereo_concat,
     ])

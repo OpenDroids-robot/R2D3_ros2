@@ -1,3 +1,0 @@
-# Lift Control
-woosh_ros_msgs/LiftControlExecuteMode execute_mode
-woosh_ros_msgs/ControlAction action

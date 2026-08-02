@@ -16,6 +16,8 @@
     <group name="platform">
         <chain base_link="body_base_link" tip_link="platform_base_link"/>
     </group>
+
+    <!-- GROUP STATES -->
     <group_state name="home" group="left_arm">
         <joint name="l_joint1" value="0"/>
         <joint name="l_joint2" value="0"/>
@@ -39,8 +41,9 @@
         <joint name="platform_joint" value="0"/>
     </group_state>
 
+    <!-- VIRTUAL JOINT -->
     <virtual_joint name="virtual_joint" type="fixed" parent_frame="world" child_link="base_link_underpan"/>
-
+    
     <!-- ==================================================== -->
     <!-- 4C2 GRIPPER CONFIGURATION                            -->
     <!-- ==================================================== -->
@@ -71,7 +74,7 @@
         <end_effector name="right_gripper" parent_link="r_link6" group="right_gripper" parent_group="right_arm"/>
 
         <!-- 4c2 Specific Collisions -->
-        <disable_collisions link1="camera_link" link2="r_r_2_base" reason="Never"/>
+        <disable_collisions link1="zed_camera_center" link2="r_r_2_base" reason="Never"/>
         <disable_collisions link1="head_link1" link2="l_r_2" reason="Never"/>
         <disable_collisions link1="head_link1" link2="l_r_2_base" reason="Never"/>
         <disable_collisions link1="head_link1" link2="r_l_2_base" reason="Never"/>
@@ -484,8 +487,35 @@
         <end_effector name="left_gripper" parent_link="l_link6" group="left_gripper" parent_group="left_arm"/>
         <end_effector name="right_gripper" parent_link="r_link6" group="right_gripper" parent_group="right_arm"/>
 
-        <!-- Dummy Specific Collisions -->
+        <!-- Dummy Specific Collisions (Extracted from global SRDF to prevent parsing errors) -->
+        <disable_collisions link1="l_hand_base_link" link2="l_link3" reason="Never"/>
+        <disable_collisions link1="l_hand_base_link" link2="l_link4" reason="Never"/>
+        <disable_collisions link1="l_hand_base_link" link2="l_link5" reason="Default"/>
         <disable_collisions link1="l_hand_base_link" link2="l_link6" reason="Adjacent"/>
+        <disable_collisions link1="l_hand_base_link" link2="link_left_wheel" reason="Never"/>
+        <disable_collisions link1="l_hand_base_link" link2="link_right_wheel" reason="Never"/>
+        <disable_collisions link1="l_hand_base_link" link2="link_swivel_wheel_1_1" reason="Never"/>
+        <disable_collisions link1="l_hand_base_link" link2="link_swivel_wheel_1_2" reason="Never"/>
+        <disable_collisions link1="l_hand_base_link" link2="link_swivel_wheel_2_1" reason="Never"/>
+        <disable_collisions link1="l_hand_base_link" link2="link_swivel_wheel_2_2" reason="Never"/>
+        <disable_collisions link1="l_hand_base_link" link2="link_swivel_wheel_3_1" reason="Never"/>
+        <disable_collisions link1="l_hand_base_link" link2="link_swivel_wheel_3_2" reason="Never"/>
+        <disable_collisions link1="l_hand_base_link" link2="link_swivel_wheel_4_1" reason="Never"/>
+        <disable_collisions link1="l_hand_base_link" link2="link_swivel_wheel_4_2" reason="Never"/>
+        
+        <disable_collisions link1="link_left_wheel" link2="r_hand_base_link" reason="Never"/>
+        <disable_collisions link1="link_right_wheel" link2="r_hand_base_link" reason="Never"/>
+        <disable_collisions link1="link_swivel_wheel_1_1" link2="r_hand_base_link" reason="Never"/>
+        <disable_collisions link1="link_swivel_wheel_1_2" link2="r_hand_base_link" reason="Never"/>
+        <disable_collisions link1="link_swivel_wheel_2_1" link2="r_hand_base_link" reason="Never"/>
+        <disable_collisions link1="link_swivel_wheel_2_2" link2="r_hand_base_link" reason="Never"/>
+        <disable_collisions link1="link_swivel_wheel_3_1" link2="r_hand_base_link" reason="Never"/>
+        <disable_collisions link1="link_swivel_wheel_3_2" link2="r_hand_base_link" reason="Never"/>
+        <disable_collisions link1="link_swivel_wheel_4_1" link2="r_hand_base_link" reason="Never"/>
+        <disable_collisions link1="link_swivel_wheel_4_2" link2="r_hand_base_link" reason="Never"/>
+        <disable_collisions link1="r_hand_base_link" link2="r_link3" reason="Never"/>
+        <disable_collisions link1="r_hand_base_link" link2="r_link4" reason="Never"/>
+        <disable_collisions link1="r_hand_base_link" link2="r_link5" reason="Never"/>
         <disable_collisions link1="r_hand_base_link" link2="r_link6" reason="Adjacent"/>
     </xacro:if>
 
@@ -493,7 +523,7 @@
     <!-- MAIN ROBOT BODY COLLISIONS (Always Loaded)           -->
     <!-- ==================================================== -->
     <disable_collisions link1="base_link_underpan" link2="body_base_link" reason="Adjacent"/>
-    <disable_collisions link1="base_link_underpan" link2="camera_link" reason="Never"/>
+    <disable_collisions link1="base_link_underpan" link2="zed_camera_center" reason="Never"/>
     <disable_collisions link1="base_link_underpan" link2="head_link1" reason="Never"/>
     <disable_collisions link1="base_link_underpan" link2="head_link2" reason="Never"/>
     <disable_collisions link1="base_link_underpan" link2="l_base_link1" reason="Never"/>
@@ -501,6 +531,8 @@
     <disable_collisions link1="base_link_underpan" link2="l_link2" reason="Never"/>
     <disable_collisions link1="base_link_underpan" link2="l_link3" reason="Never"/>
     <disable_collisions link1="base_link_underpan" link2="l_link4" reason="Never"/>
+    <disable_collisions link1="base_link_underpan" link2="l_link5" reason="Never"/>
+    <disable_collisions link1="base_link_underpan" link2="l_link6" reason="Never"/>
     <disable_collisions link1="base_link_underpan" link2="link_left_wheel" reason="Adjacent"/>
     <disable_collisions link1="base_link_underpan" link2="link_right_wheel" reason="Adjacent"/>
     <disable_collisions link1="base_link_underpan" link2="link_swivel_wheel_1_1" reason="Adjacent"/>
@@ -517,8 +549,8 @@
     <disable_collisions link1="base_link_underpan" link2="r_link2" reason="Never"/>
     <disable_collisions link1="base_link_underpan" link2="r_link3" reason="Never"/>
     <disable_collisions link1="base_link_underpan" link2="r_link4" reason="Never"/>
-    
-    <disable_collisions link1="body_base_link" link2="camera_link" reason="Never"/>
+    <disable_collisions link1="base_link_underpan" link2="r_link5" reason="Never"/>
+    <disable_collisions link1="body_base_link" link2="zed_camera_center" reason="Never"/>
     <disable_collisions link1="body_base_link" link2="head_link1" reason="Never"/>
     <disable_collisions link1="body_base_link" link2="head_link2" reason="Never"/>
     <disable_collisions link1="body_base_link" link2="l_base_link1" reason="Never"/>
@@ -536,25 +568,23 @@
     <disable_collisions link1="body_base_link" link2="platform_base_link" reason="Adjacent"/>
     <disable_collisions link1="body_base_link" link2="r_base_link1" reason="Never"/>
     <disable_collisions link1="body_base_link" link2="r_link1" reason="Never"/>
-    
-    <disable_collisions link1="camera_link" link2="head_link1" reason="Never"/>
-    <disable_collisions link1="camera_link" link2="head_link2" reason="Adjacent"/>
-    <disable_collisions link1="camera_link" link2="l_base_link1" reason="Never"/>
-    <disable_collisions link1="camera_link" link2="l_link1" reason="Never"/>
-    <disable_collisions link1="camera_link" link2="link_left_wheel" reason="Never"/>
-    <disable_collisions link1="camera_link" link2="link_right_wheel" reason="Never"/>
-    <disable_collisions link1="camera_link" link2="link_swivel_wheel_1_1" reason="Never"/>
-    <disable_collisions link1="camera_link" link2="link_swivel_wheel_1_2" reason="Never"/>
-    <disable_collisions link1="camera_link" link2="link_swivel_wheel_2_1" reason="Never"/>
-    <disable_collisions link1="camera_link" link2="link_swivel_wheel_2_2" reason="Never"/>
-    <disable_collisions link1="camera_link" link2="link_swivel_wheel_3_1" reason="Never"/>
-    <disable_collisions link1="camera_link" link2="link_swivel_wheel_3_2" reason="Never"/>
-    <disable_collisions link1="camera_link" link2="link_swivel_wheel_4_1" reason="Never"/>
-    <disable_collisions link1="camera_link" link2="link_swivel_wheel_4_2" reason="Never"/>
-    <disable_collisions link1="camera_link" link2="platform_base_link" reason="Never"/>
-    <disable_collisions link1="camera_link" link2="r_base_link1" reason="Never"/>
-    <disable_collisions link1="camera_link" link2="r_link1" reason="Never"/>
-    
+    <disable_collisions link1="zed_camera_center" link2="head_link1" reason="Never"/>
+    <disable_collisions link1="zed_camera_center" link2="head_link2" reason="Adjacent"/>
+    <disable_collisions link1="zed_camera_center" link2="l_base_link1" reason="Never"/>
+    <disable_collisions link1="zed_camera_center" link2="l_link1" reason="Never"/>
+    <disable_collisions link1="zed_camera_center" link2="link_left_wheel" reason="Never"/>
+    <disable_collisions link1="zed_camera_center" link2="link_right_wheel" reason="Never"/>
+    <disable_collisions link1="zed_camera_center" link2="link_swivel_wheel_1_1" reason="Never"/>
+    <disable_collisions link1="zed_camera_center" link2="link_swivel_wheel_1_2" reason="Never"/>
+    <disable_collisions link1="zed_camera_center" link2="link_swivel_wheel_2_1" reason="Never"/>
+    <disable_collisions link1="zed_camera_center" link2="link_swivel_wheel_2_2" reason="Never"/>
+    <disable_collisions link1="zed_camera_center" link2="link_swivel_wheel_3_1" reason="Never"/>
+    <disable_collisions link1="zed_camera_center" link2="link_swivel_wheel_3_2" reason="Never"/>
+    <disable_collisions link1="zed_camera_center" link2="link_swivel_wheel_4_1" reason="Never"/>
+    <disable_collisions link1="zed_camera_center" link2="link_swivel_wheel_4_2" reason="Never"/>
+    <disable_collisions link1="zed_camera_center" link2="platform_base_link" reason="Never"/>
+    <disable_collisions link1="zed_camera_center" link2="r_base_link1" reason="Never"/>
+    <disable_collisions link1="zed_camera_center" link2="r_link1" reason="Never"/>
     <disable_collisions link1="head_link1" link2="head_link2" reason="Adjacent"/>
     <disable_collisions link1="head_link1" link2="l_base_link1" reason="Never"/>
     <disable_collisions link1="head_link1" link2="l_link1" reason="Never"/>
@@ -571,7 +601,6 @@
     <disable_collisions link1="head_link1" link2="platform_base_link" reason="Adjacent"/>
     <disable_collisions link1="head_link1" link2="r_base_link1" reason="Never"/>
     <disable_collisions link1="head_link1" link2="r_link1" reason="Never"/>
-    
     <disable_collisions link1="head_link2" link2="l_base_link1" reason="Never"/>
     <disable_collisions link1="head_link2" link2="l_link1" reason="Never"/>
     <disable_collisions link1="head_link2" link2="link_left_wheel" reason="Never"/>
@@ -587,7 +616,6 @@
     <disable_collisions link1="head_link2" link2="platform_base_link" reason="Never"/>
     <disable_collisions link1="head_link2" link2="r_base_link1" reason="Never"/>
     <disable_collisions link1="head_link2" link2="r_link1" reason="Never"/>
-    
     <disable_collisions link1="l_base_link1" link2="l_link1" reason="Adjacent"/>
     <disable_collisions link1="l_base_link1" link2="l_link2" reason="Never"/>
     <disable_collisions link1="l_base_link1" link2="link_left_wheel" reason="Never"/>
@@ -604,7 +632,6 @@
     <disable_collisions link1="l_base_link1" link2="r_base_link1" reason="Never"/>
     <disable_collisions link1="l_base_link1" link2="r_link1" reason="Never"/>
     <disable_collisions link1="l_base_link1" link2="r_link2" reason="Never"/>
-    
     <disable_collisions link1="l_link1" link2="l_link2" reason="Adjacent"/>
     <disable_collisions link1="l_link1" link2="l_link3" reason="Never"/>
     <disable_collisions link1="l_link1" link2="l_link4" reason="Never"/>
@@ -623,9 +650,9 @@
     <disable_collisions link1="l_link1" link2="r_link1" reason="Never"/>
     <disable_collisions link1="l_link1" link2="r_link2" reason="Never"/>
     <disable_collisions link1="l_link1" link2="r_link3" reason="Never"/>
-    
     <disable_collisions link1="l_link2" link2="l_link3" reason="Adjacent"/>
     <disable_collisions link1="l_link2" link2="l_link4" reason="Never"/>
+    <disable_collisions link1="l_link2" link2="l_link5" reason="Never"/>
     <disable_collisions link1="l_link2" link2="link_left_wheel" reason="Never"/>
     <disable_collisions link1="l_link2" link2="link_right_wheel" reason="Never"/>
     <disable_collisions link1="l_link2" link2="link_swivel_wheel_1_1" reason="Never"/>
@@ -638,10 +665,8 @@
     <disable_collisions link1="l_link2" link2="link_swivel_wheel_4_2" reason="Never"/>
     <disable_collisions link1="l_link2" link2="r_base_link1" reason="Never"/>
     <disable_collisions link1="l_link2" link2="r_link1" reason="Never"/>
-    
     <disable_collisions link1="l_link3" link2="l_link4" reason="Adjacent"/>
     <disable_collisions link1="l_link3" link2="l_link5" reason="Never"/>
-    <disable_collisions link1="l_link3" link2="l_link6" reason="Never"/>
     <disable_collisions link1="l_link3" link2="link_left_wheel" reason="Never"/>
     <disable_collisions link1="l_link3" link2="link_right_wheel" reason="Never"/>
     <disable_collisions link1="l_link3" link2="link_swivel_wheel_1_1" reason="Never"/>
@@ -652,8 +677,6 @@
     <disable_collisions link1="l_link3" link2="link_swivel_wheel_3_2" reason="Never"/>
     <disable_collisions link1="l_link3" link2="link_swivel_wheel_4_1" reason="Never"/>
     <disable_collisions link1="l_link3" link2="link_swivel_wheel_4_2" reason="Never"/>
-    <disable_collisions link1="l_link3" link2="r_link1" reason="Never"/>
-    
     <disable_collisions link1="l_link4" link2="l_link5" reason="Adjacent"/>
     <disable_collisions link1="l_link4" link2="l_link6" reason="Never"/>
     <disable_collisions link1="l_link4" link2="link_left_wheel" reason="Never"/>
@@ -666,7 +689,6 @@
     <disable_collisions link1="l_link4" link2="link_swivel_wheel_3_2" reason="Never"/>
     <disable_collisions link1="l_link4" link2="link_swivel_wheel_4_1" reason="Never"/>
     <disable_collisions link1="l_link4" link2="link_swivel_wheel_4_2" reason="Never"/>
-    
     <disable_collisions link1="l_link5" link2="l_link6" reason="Adjacent"/>
     <disable_collisions link1="l_link5" link2="link_left_wheel" reason="Never"/>
     <disable_collisions link1="l_link5" link2="link_right_wheel" reason="Never"/>
@@ -678,7 +700,7 @@
     <disable_collisions link1="l_link5" link2="link_swivel_wheel_3_2" reason="Never"/>
     <disable_collisions link1="l_link5" link2="link_swivel_wheel_4_1" reason="Never"/>
     <disable_collisions link1="l_link5" link2="link_swivel_wheel_4_2" reason="Never"/>
-    
+    <disable_collisions link1="l_link6" link2="link_left_wheel" reason="Never"/>
     <disable_collisions link1="l_link6" link2="link_right_wheel" reason="Never"/>
     <disable_collisions link1="l_link6" link2="link_swivel_wheel_1_1" reason="Never"/>
     <disable_collisions link1="l_link6" link2="link_swivel_wheel_1_2" reason="Never"/>
@@ -688,7 +710,6 @@
     <disable_collisions link1="l_link6" link2="link_swivel_wheel_3_2" reason="Never"/>
     <disable_collisions link1="l_link6" link2="link_swivel_wheel_4_1" reason="Never"/>
     <disable_collisions link1="l_link6" link2="link_swivel_wheel_4_2" reason="Never"/>
-    
     <disable_collisions link1="link_left_wheel" link2="link_right_wheel" reason="Never"/>
     <disable_collisions link1="link_left_wheel" link2="link_swivel_wheel_1_1" reason="Never"/>
     <disable_collisions link1="link_left_wheel" link2="link_swivel_wheel_1_2" reason="Never"/>
@@ -706,7 +727,6 @@
     <disable_collisions link1="link_left_wheel" link2="r_link4" reason="Never"/>
     <disable_collisions link1="link_left_wheel" link2="r_link5" reason="Never"/>
     <disable_collisions link1="link_left_wheel" link2="r_link6" reason="Never"/>
-    
     <disable_collisions link1="link_right_wheel" link2="link_swivel_wheel_1_1" reason="Never"/>
     <disable_collisions link1="link_right_wheel" link2="link_swivel_wheel_1_2" reason="Never"/>
     <disable_collisions link1="link_right_wheel" link2="link_swivel_wheel_2_1" reason="Never"/>
@@ -722,8 +742,6 @@
     <disable_collisions link1="link_right_wheel" link2="r_link3" reason="Never"/>
     <disable_collisions link1="link_right_wheel" link2="r_link4" reason="Never"/>
     <disable_collisions link1="link_right_wheel" link2="r_link5" reason="Never"/>
-    <disable_collisions link1="link_right_wheel" link2="r_link6" reason="Never"/>
-    
     <disable_collisions link1="link_swivel_wheel_1_1" link2="link_swivel_wheel_1_2" reason="Adjacent"/>
     <disable_collisions link1="link_swivel_wheel_1_1" link2="link_swivel_wheel_2_1" reason="Never"/>
     <disable_collisions link1="link_swivel_wheel_1_1" link2="link_swivel_wheel_2_2" reason="Never"/>
@@ -739,7 +757,6 @@
     <disable_collisions link1="link_swivel_wheel_1_1" link2="r_link4" reason="Never"/>
     <disable_collisions link1="link_swivel_wheel_1_1" link2="r_link5" reason="Never"/>
     <disable_collisions link1="link_swivel_wheel_1_1" link2="r_link6" reason="Never"/>
-    
     <disable_collisions link1="link_swivel_wheel_1_2" link2="link_swivel_wheel_2_1" reason="Never"/>
     <disable_collisions link1="link_swivel_wheel_1_2" link2="link_swivel_wheel_2_2" reason="Never"/>
     <disable_collisions link1="link_swivel_wheel_1_2" link2="link_swivel_wheel_3_1" reason="Never"/>
@@ -754,7 +771,6 @@
     <disable_collisions link1="link_swivel_wheel_1_2" link2="r_link4" reason="Never"/>
     <disable_collisions link1="link_swivel_wheel_1_2" link2="r_link5" reason="Never"/>
     <disable_collisions link1="link_swivel_wheel_1_2" link2="r_link6" reason="Never"/>
-    
     <disable_collisions link1="link_swivel_wheel_2_1" link2="link_swivel_wheel_2_2" reason="Adjacent"/>
     <disable_collisions link1="link_swivel_wheel_2_1" link2="link_swivel_wheel_3_1" reason="Never"/>
     <disable_collisions link1="link_swivel_wheel_2_1" link2="link_swivel_wheel_3_2" reason="Never"/>
@@ -768,7 +784,6 @@
     <disable_collisions link1="link_swivel_wheel_2_1" link2="r_link4" reason="Never"/>
     <disable_collisions link1="link_swivel_wheel_2_1" link2="r_link5" reason="Never"/>
     <disable_collisions link1="link_swivel_wheel_2_1" link2="r_link6" reason="Never"/>
-    
     <disable_collisions link1="link_swivel_wheel_2_2" link2="link_swivel_wheel_3_1" reason="Never"/>
     <disable_collisions link1="link_swivel_wheel_2_2" link2="link_swivel_wheel_3_2" reason="Never"/>
     <disable_collisions link1="link_swivel_wheel_2_2" link2="link_swivel_wheel_4_1" reason="Never"/>
@@ -781,7 +796,6 @@
     <disable_collisions link1="link_swivel_wheel_2_2" link2="r_link4" reason="Never"/>
     <disable_collisions link1="link_swivel_wheel_2_2" link2="r_link5" reason="Never"/>
     <disable_collisions link1="link_swivel_wheel_2_2" link2="r_link6" reason="Never"/>
-    
     <disable_collisions link1="link_swivel_wheel_3_1" link2="link_swivel_wheel_3_2" reason="Adjacent"/>
     <disable_collisions link1="link_swivel_wheel_3_1" link2="link_swivel_wheel_4_1" reason="Never"/>
     <disable_collisions link1="link_swivel_wheel_3_1" link2="link_swivel_wheel_4_2" reason="Never"/>
@@ -793,7 +807,6 @@
     <disable_collisions link1="link_swivel_wheel_3_1" link2="r_link4" reason="Never"/>
     <disable_collisions link1="link_swivel_wheel_3_1" link2="r_link5" reason="Never"/>
     <disable_collisions link1="link_swivel_wheel_3_1" link2="r_link6" reason="Never"/>
-    
     <disable_collisions link1="link_swivel_wheel_3_2" link2="link_swivel_wheel_4_1" reason="Never"/>
     <disable_collisions link1="link_swivel_wheel_3_2" link2="link_swivel_wheel_4_2" reason="Never"/>
     <disable_collisions link1="link_swivel_wheel_3_2" link2="platform_base_link" reason="Never"/>
@@ -804,7 +817,6 @@
     <disable_collisions link1="link_swivel_wheel_3_2" link2="r_link4" reason="Never"/>
     <disable_collisions link1="link_swivel_wheel_3_2" link2="r_link5" reason="Never"/>
     <disable_collisions link1="link_swivel_wheel_3_2" link2="r_link6" reason="Never"/>
-    
     <disable_collisions link1="link_swivel_wheel_4_1" link2="link_swivel_wheel_4_2" reason="Adjacent"/>
     <disable_collisions link1="link_swivel_wheel_4_1" link2="platform_base_link" reason="Never"/>
     <disable_collisions link1="link_swivel_wheel_4_1" link2="r_base_link1" reason="Never"/>
@@ -814,7 +826,6 @@
     <disable_collisions link1="link_swivel_wheel_4_1" link2="r_link4" reason="Never"/>
     <disable_collisions link1="link_swivel_wheel_4_1" link2="r_link5" reason="Never"/>
     <disable_collisions link1="link_swivel_wheel_4_1" link2="r_link6" reason="Never"/>
-    
     <disable_collisions link1="link_swivel_wheel_4_2" link2="platform_base_link" reason="Never"/>
     <disable_collisions link1="link_swivel_wheel_4_2" link2="r_base_link1" reason="Never"/>
     <disable_collisions link1="link_swivel_wheel_4_2" link2="r_link1" reason="Never"/>
@@ -823,13 +834,10 @@
     <disable_collisions link1="link_swivel_wheel_4_2" link2="r_link4" reason="Never"/>
     <disable_collisions link1="link_swivel_wheel_4_2" link2="r_link5" reason="Never"/>
     <disable_collisions link1="link_swivel_wheel_4_2" link2="r_link6" reason="Never"/>
-    
     <disable_collisions link1="platform_base_link" link2="r_base_link1" reason="Adjacent"/>
     <disable_collisions link1="platform_base_link" link2="r_link1" reason="Never"/>
     <disable_collisions link1="r_base_link1" link2="r_link1" reason="Adjacent"/>
     <disable_collisions link1="r_base_link1" link2="r_link2" reason="Never"/>
-    <disable_collisions link1="r_base_link1" link2="r_link3" reason="Never"/>
-    
     <disable_collisions link1="r_link1" link2="r_link2" reason="Adjacent"/>
     <disable_collisions link1="r_link1" link2="r_link3" reason="Never"/>
     <disable_collisions link1="r_link1" link2="r_link4" reason="Never"/>

@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <robot name="4C2" xmlns:xacro="http://www.ros.org/wiki/xacro">
   
+  <!-- Default to true so Gazebo apps don't break! -->
+  <xacro:arg name="use_gazebo" default="true"/>
+
   <xacro:macro name="gripper_4c2" params="prefix parent_link">
   
   <!-- The joint that actually attaches this gripper to the robot arm -->
@@ -343,9 +346,18 @@
     <material>Gazebo/Grey</material>
   </gazebo>
 
+  <!-- ═══════════════════════════════════════════════════════════
+       ROS 2 Control (Hardware Interfaces)
+       ═══════════════════════════════════════════════════════════ -->
   <ros2_control name="${prefix}Gripper_Hardware" type="system">
     <hardware>
-      <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+      <xacro:if value="$(arg use_gazebo)">
+        <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+      </xacro:if>
+      <xacro:unless value="$(arg use_gazebo)">
+        <!-- Use a mock system to prevent MuJoCo from spawning multiple physics instances -->
+        <plugin>mock_components/GenericSystem</plugin>
+      </xacro:unless>
     </hardware>
 
     <joint name="${prefix}gripper_joint">
@@ -402,6 +414,6 @@
       <state_interface name="velocity"/>
     </joint>
   </ros2_control>
-  
+
   </xacro:macro>
 </robot>

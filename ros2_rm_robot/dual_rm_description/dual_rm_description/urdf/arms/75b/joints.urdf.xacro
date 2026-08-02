@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <robot name="joint" xmlns:xacro="http://www.ros.org/wiki/xacro">
-   <joint
+  <joint
     name="body_base_joint"
     type="fixed">
     <origin
@@ -44,7 +44,7 @@
   </joint>
 
   <!-- Dummy Hand Joints Wrapped in Conditional -->
-  <xacro:if value="${gripper_type == 'dummy'}">
+  <xacro:if value="${'$(arg gripper_type)' == 'dummy'}">
     <joint
       name="r_hand_joint"
       type="fixed">

@@ -12,21 +12,26 @@ from moveit_configs_utils import MoveItConfigsBuilder
 
 def launch_setup(context, *args, **kwargs):
     robot_model_str = LaunchConfiguration("robot_model").perform(context)
-    
-    # ── EXTRACT THE GRIPPER ARGUMENT ───────────────────────────────
     gripper_type_str = LaunchConfiguration("gripper_type").perform(context)
 
-    # ── Load MoveIt configs for the selected arm variant ───────────
+    # ── Load MoveIt configs for the selected arm & gripper ─────────
     moveit_config = (
         MoveItConfigsBuilder(
             f"dual_rm_{robot_model_str}_description",
             package_name=f"dual_rm_{robot_model_str}_moveit_config",
         )
-        .robot_description(mappings={"arm_model": robot_model_str, "gripper_type": gripper_type_str})
-        # FORCE MOVE_GROUP TO USE THE DYNAMIC SRDF.XACRO FILE
+        .robot_description(
+            mappings={
+                "arm_model": robot_model_str, 
+                "gripper_type": gripper_type_str
+            }
+        )
         .robot_description_semantic(
             file_path=f"config/dual_rm_{robot_model_str}_description.srdf.xacro",
-            mappings={"arm_model": robot_model_str, "gripper_type": gripper_type_str}
+            mappings={
+                "arm_model": robot_model_str, 
+                "gripper_type": gripper_type_str
+            }
         )
         .to_moveit_configs()
     )
@@ -48,18 +53,8 @@ def launch_setup(context, *args, **kwargs):
 
 
 def generate_launch_description():
-    # ── Arguments ─────────────────────────────────────────────────
-    declare_robot_model = DeclareLaunchArgument(
-        "robot_model",
-        default_value="65b",
-        description="Robot model variant: 65b or 75b",
-    )
-    
-    declare_gripper_type = DeclareLaunchArgument(
-        "gripper_type",
-        default_value="dummy_gripper",
-        description="Choose gripper type: dummy_gripper or 4c2",
-    )
+    declare_robot_model = DeclareLaunchArgument("robot_model", default_value="65b")
+    declare_gripper_type = DeclareLaunchArgument("gripper_type", default_value="dummy")
 
     return LaunchDescription(
         [
