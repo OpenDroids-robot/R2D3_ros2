@@ -2,8 +2,9 @@
 Display the R2D3 robot in RViz with joint_state_publisher_gui.
 
 Usage:
-  ros2 launch dual_rm_description display.launch.py                 # default: 65b
-  ros2 launch dual_rm_description display.launch.py arm_model:=75b  # 75b variant
+  ros2 launch dual_rm_description display.launch.py                                      # default: 65b, dummy gripper
+  ros2 launch dual_rm_description display.launch.py arm_model:=75b                       # 75b variant, dummy gripper
+  ros2 launch dual_rm_description display.launch.py arm_model:=75b gripper_type:=4c2     # 75b variant, 4c2 gripper
 """
 
 import os
@@ -25,6 +26,13 @@ def generate_launch_description():
         description='Arm variant: 65b (RM-65B, 6-DOF) or 75b (RM-75B, 7-DOF)',
     )
 
+    declare_gripper_type = DeclareLaunchArgument(
+        'gripper_type',
+        default_value='dummy',
+        choices=['dummy', '4c2'],
+        description='Gripper variant: dummy (rigid block) or 4c2 (2-finger parallel)',
+    )
+
     # -- Robot description via xacro -------------------------------------
     pkg_share = FindPackageShare('dual_rm_description')
     urdf_file = PathJoinSubstitution(
@@ -34,7 +42,8 @@ def generate_launch_description():
     robot_description = ParameterValue(
         Command([
             'xacro ', urdf_file,
-            ' arm_model:=', LaunchConfiguration('arm_model'),
+            ' arm_model:=', LaunchConfiguration('robot_model'),
+            ' gripper_type:=', LaunchConfiguration('gripper_type'),
         ]),
         value_type=str,
     )
@@ -66,6 +75,7 @@ def generate_launch_description():
 
     return LaunchDescription([
         declare_arm_model,
+        declare_gripper_type,
         rsp_node,
         jsp_gui_node,
         rviz_node,

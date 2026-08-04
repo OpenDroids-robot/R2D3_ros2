@@ -375,7 +375,7 @@ class TestFinalizeConversion(unittest.TestCase):
 
     def test_success_patches_and_writes_checksum(self):
         self.mjcf.write_text(f"<mujoco><worldbody>{self._full_worldbody()}</worldbody></mujoco>")
-        self.assertTrue(ensure_mjcf.finalize_conversion(self.mjcf, self.cache, "abc", MINIMAL_URDF))
+        self.assertTrue(ensure_mjcf.finalize_conversion(self.mjcf, self.cache, "abc", MINIMAL_URDF, "65b"))
         self.assertEqual(self.checksum_file.read_text().strip(), "abc")
         text = self.mjcf.read_text()
         expected_z = round(0.233 + ensure_mjcf.LIDAR_SCAN_RAISE_M, 6)
@@ -385,7 +385,6 @@ class TestFinalizeConversion(unittest.TestCase):
         self.assertIn('mass="4.000000"', text)
 
     def test_missing_base_inertial_fails_hard_without_checksum(self):
-        # Full wheel + lidar set but no base_footprint body -> inject step must fail hard.
         wheels = "".join(
             f'<body name="{b}" pos="0 0 0.08" quat="0.707107 0 0 0.707107">'
             f'<geom type="mesh" mesh="{b}" class="collision"/></body>'
@@ -396,29 +395,26 @@ class TestFinalizeConversion(unittest.TestCase):
             )
         )
         self.mjcf.write_text(f"<mujoco><worldbody>{LIDAR_BODY_MJCF}{wheels}</worldbody></mujoco>")
-        self.assertFalse(ensure_mjcf.finalize_conversion(self.mjcf, self.cache, "abc", MINIMAL_URDF))
+        self.assertFalse(ensure_mjcf.finalize_conversion(self.mjcf, self.cache, "abc", MINIMAL_URDF, "65b"))
         self.assertFalse(self.checksum_file.exists())
 
     def test_patch_count_mismatch_fails_hard_without_checksum(self):
-        # Well-formed XML, but no lidar rangefinder body present:
-        # simulates the converter output no longer matching the patch pattern.
         self.mjcf.write_text('<mujoco><worldbody><geom type="mesh" mesh="l_link1"/></worldbody></mujoco>')
-        self.assertFalse(ensure_mjcf.finalize_conversion(self.mjcf, self.cache, "abc", MINIMAL_URDF))
+        self.assertFalse(ensure_mjcf.finalize_conversion(self.mjcf, self.cache, "abc", MINIMAL_URDF, "65b"))
         self.assertFalse(self.checksum_file.exists())
 
     def test_multiple_lidar_bodies_fails_hard_without_checksum(self):
-        # More than one lidar body (unexpected upstream change) must fail hard.
         self.mjcf.write_text(f"<mujoco><worldbody>{LIDAR_BODY_MJCF}{LIDAR_BODY_MJCF}</worldbody></mujoco>")
-        self.assertFalse(ensure_mjcf.finalize_conversion(self.mjcf, self.cache, "abc", MINIMAL_URDF))
+        self.assertFalse(ensure_mjcf.finalize_conversion(self.mjcf, self.cache, "abc", MINIMAL_URDF, "65b"))
         self.assertFalse(self.checksum_file.exists())
 
     def test_invalid_xml_fails_hard_without_checksum(self):
         self.mjcf.write_text("<mujoco><worldbody><geom ")
-        self.assertFalse(ensure_mjcf.finalize_conversion(self.mjcf, self.cache, "abc", MINIMAL_URDF))
+        self.assertFalse(ensure_mjcf.finalize_conversion(self.mjcf, self.cache, "abc", MINIMAL_URDF, "65b"))
         self.assertFalse(self.checksum_file.exists())
 
     def test_missing_file_fails_hard_without_checksum(self):
-        self.assertFalse(ensure_mjcf.finalize_conversion(self.mjcf, self.cache, "abc", MINIMAL_URDF))
+        self.assertFalse(ensure_mjcf.finalize_conversion(self.mjcf, self.cache, "abc", MINIMAL_URDF, "65b"))
         self.assertFalse(self.checksum_file.exists())
 
 
