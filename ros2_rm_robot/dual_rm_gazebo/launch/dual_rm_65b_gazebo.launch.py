@@ -56,6 +56,7 @@ def launch_setup(context: LaunchContext, *args, **kwargs):
     load_left_arm_controller = Node(package='controller_manager', executable='spawner', arguments=['left_arm_controller'])
     load_right_arm_controller = Node(package='controller_manager', executable='spawner', arguments=['right_arm_controller'])
     load_platform_controller = Node(package='controller_manager', executable='spawner', arguments=['platform_controller'])
+    load_agv_controller = Node(package='controller_manager', executable='spawner', arguments=['agv_controller'])
 
     nodes = [gazebo, node_robot_state_publisher, spawn_entity]
 
@@ -63,7 +64,8 @@ def launch_setup(context: LaunchContext, *args, **kwargs):
     nodes.append(RegisterEventHandler(event_handler=OnProcessExit(target_action=load_joint_state_controller, on_exit=[load_left_arm_controller])))
     nodes.append(RegisterEventHandler(event_handler=OnProcessExit(target_action=load_joint_state_controller, on_exit=[load_right_arm_controller])))
     nodes.append(RegisterEventHandler(event_handler=OnProcessExit(target_action=load_joint_state_controller, on_exit=[load_platform_controller])))
-
+    nodes.append(RegisterEventHandler(event_handler=OnProcessExit(target_action=load_joint_state_controller, on_exit=[load_agv_controller])))
+    
     if gripper_type_str == '4c2':
         load_left_gripper_controller = Node(package='controller_manager', executable='spawner', arguments=['left_gripper_controller'])
         load_right_gripper_controller = Node(package='controller_manager', executable='spawner', arguments=['right_gripper_controller'])
