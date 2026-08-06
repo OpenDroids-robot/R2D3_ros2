@@ -23,14 +23,16 @@ def launch_setup(context, *args, **kwargs):
         .robot_description(
             mappings={
                 "arm_model": robot_model_str, 
-                "gripper_type": gripper_type_str
+                "gripper_type": gripper_type_str,
+                "gazebo_version": "harmonic", 
             }
         )
         .robot_description_semantic(
             file_path=f"config/dual_rm_{robot_model_str}_description.srdf.xacro",
             mappings={
                 "arm_model": robot_model_str, 
-                "gripper_type": gripper_type_str
+                "gripper_type": gripper_type_str,
+                "gazebo_version": "harmonic", 
             }
         )
         .to_moveit_configs()

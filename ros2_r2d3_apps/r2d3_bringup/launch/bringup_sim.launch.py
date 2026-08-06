@@ -44,6 +44,7 @@ def launch_setup(context, *args, **kwargs):
     # ── INJECT ENVIRONMENT VARIABLE ───────────────────────────────
     # This forces the external Gazebo/Nav launch file to use your gripper
     os.environ["GRIPPER_TYPE"] = gripper_type_str
+    os.environ["GAZEBO_VERSION"] = "harmonic"
     # ──────────────────────────────────────────────────────────────
 
     # ── MoveIt parameters for RViz ────────────────────────────────
@@ -56,6 +57,7 @@ def launch_setup(context, *args, **kwargs):
             mappings={
                 "arm_model": robot_model_str,
                 "gripper_type": gripper_type_str,
+                "gazebo_version": "harmonic", 
             }
         )
         .robot_description_semantic(
@@ -63,6 +65,7 @@ def launch_setup(context, *args, **kwargs):
             mappings={
                 "arm_model": robot_model_str,
                 "gripper_type": gripper_type_str,
+                "gazebo_version": "harmonic", 
             }
         )
         .to_moveit_configs()
