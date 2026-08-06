@@ -25,7 +25,7 @@ def launch_setup(context: LaunchContext, *args, **kwargs):
 
     doc = xacro.process_file(urdf_model_path, mappings={'gripper_type': gripper_type_str})
     
-    # NEW FIX: Strip comments so the Gazebo ROS 2 Control CLI parser doesn't choke on em-dashes
+    # Strip comments so the Gazebo ROS 2 Control CLI parser doesn't choke on em-dashes
     strip_comments(doc)
     
     robot_description_xml = doc.toxml()

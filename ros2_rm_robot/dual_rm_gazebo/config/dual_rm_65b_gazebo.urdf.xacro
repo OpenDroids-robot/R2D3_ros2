@@ -350,7 +350,8 @@
             <state_interface name="velocity"/>
         </joint> 
 
-        <xacro:if value="${'$(arg gripper_type)' == '4c2'}">
+        <!-- The control is defined in src/ros2_rm_robot/dual_rm_description/dual_rm_description/urdf/grippers/4c2_gripper.urdf.xacro -->
+        <!-- <xacro:if value="${'$(arg gripper_type)' == '4c2'}">
             <joint name="l_gripper_joint">
                 <command_interface name="position"/>
                 <state_interface name="position">
@@ -365,7 +366,7 @@
                 </state_interface>
                 <state_interface name="velocity"/>
             </joint>
-        </xacro:if>
+        </xacro:if> -->
 
     </ros2_control>
 

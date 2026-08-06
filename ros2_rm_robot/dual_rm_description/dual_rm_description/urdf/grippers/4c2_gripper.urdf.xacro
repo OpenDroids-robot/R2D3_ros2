@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <robot name="4C2" xmlns:xacro="http://www.ros.org/wiki/xacro">
   
-  <!-- Default to true so Gazebo apps don't break! -->
+  <!-- Add a specific argument to differentiate between Classic and Harmonic -->
   <xacro:arg name="use_gazebo" default="true"/>
+  <xacro:arg name="gazebo_version" default="classic"/> <!-- 'classic' or 'harmonic' -->
 
   <xacro:macro name="gripper_4c2" params="prefix parent_link">
   
@@ -351,11 +352,13 @@
        ═══════════════════════════════════════════════════════════ -->
   <ros2_control name="${prefix}Gripper_Hardware" type="system">
     <hardware>
-      <xacro:if value="$(arg use_gazebo)">
+      <xacro:if value="${'$(arg use_gazebo)' == 'true' and '$(arg gazebo_version)' == 'classic'}">
+        <plugin>gazebo_ros2_control/GazeboSystem</plugin>
+      </xacro:if>
+      <xacro:if value="${'$(arg use_gazebo)' == 'true' and '$(arg gazebo_version)' == 'harmonic'}">
         <plugin>gz_ros2_control/GazeboSimSystem</plugin>
       </xacro:if>
       <xacro:unless value="$(arg use_gazebo)">
-        <!-- Use a mock system to prevent MuJoCo from spawning multiple physics instances -->
         <plugin>mock_components/GenericSystem</plugin>
       </xacro:unless>
     </hardware>
@@ -414,6 +417,42 @@
       <state_interface name="velocity"/>
     </joint>
   </ros2_control>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       GAZEBO SPECIFIC: Mimic Joint Plugins 
+       ═══════════════════════════════════════════════════════════ -->
+  <gazebo>
+    <plugin name="${prefix}mimic_r3" filename="libroboticsgroup_upatras_gazebo_mimic_joint_plugin.so">
+      <joint>${prefix}gripper_joint</joint>
+      <mimicJoint>${prefix}r_3_joint</mimicJoint>
+      <multiplier>1.0</multiplier>
+      <maxEffort>0.5</maxEffort>
+    </plugin>
+    <plugin name="${prefix}mimic_l1" filename="libroboticsgroup_upatras_gazebo_mimic_joint_plugin.so">
+      <joint>${prefix}gripper_joint</joint>
+      <mimicJoint>${prefix}l_1_joint</mimicJoint>
+      <multiplier>1.0</multiplier>
+      <maxEffort>0.5</maxEffort>
+    </plugin>
+    <plugin name="${prefix}mimic_l3" filename="libroboticsgroup_upatras_gazebo_mimic_joint_plugin.so">
+      <joint>${prefix}gripper_joint</joint>
+      <mimicJoint>${prefix}l_3_joint</mimicJoint>
+      <multiplier>1.0</multiplier>
+      <maxEffort>0.5</maxEffort>
+    </plugin>
+    <plugin name="${prefix}mimic_r2" filename="libroboticsgroup_upatras_gazebo_mimic_joint_plugin.so">
+      <joint>${prefix}gripper_joint</joint>
+      <mimicJoint>${prefix}r_2_joint</mimicJoint>
+      <multiplier>1.0</multiplier>
+      <maxEffort>0.5</maxEffort>
+    </plugin>
+    <plugin name="${prefix}mimic_l2" filename="libroboticsgroup_upatras_gazebo_mimic_joint_plugin.so">
+      <joint>${prefix}gripper_joint</joint>
+      <mimicJoint>${prefix}l_2_joint</mimicJoint>
+      <multiplier>1.0</multiplier>
+      <maxEffort>0.5</maxEffort>
+    </plugin>
+  </gazebo>
 
   </xacro:macro>
 </robot>
