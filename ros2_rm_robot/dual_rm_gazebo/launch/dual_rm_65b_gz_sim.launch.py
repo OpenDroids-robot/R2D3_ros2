@@ -27,8 +27,16 @@ def launch_setup(context: LaunchContext, *args, **kwargs):
 
     gripper_type_str = LaunchConfiguration('gripper_type').perform(context)
 
-    # Process Xacro dynamically and pass the harmonic gazebo_version
-    doc = xacro.process_file(urdf_model_path, mappings={'gripper_type': gripper_type_str, 'gazebo_version': 'harmonic'})
+    gz_sim_gripper_path = ''
+    if gripper_type_str != 'dummy':
+        gz_sim_gripper_path = os.path.join(pkg_share, 'config', 'grippers', f'{gripper_type_str}_gripper_gz_sim.urdf.xacro')
+
+    # 2. Process Xacro dynamically, passing the new gripper path alongside the gazebo_version
+    doc = xacro.process_file(urdf_model_path, mappings={
+        'gripper_type': gripper_type_str, 
+        'gazebo_version': 'harmonic',
+        'gz_sim_gripper_path': gz_sim_gripper_path
+    })
     
     # Strip comments so the Gazebo ROS 2 Control CLI parser doesn't choke on em-dashes
     strip_comments(doc)

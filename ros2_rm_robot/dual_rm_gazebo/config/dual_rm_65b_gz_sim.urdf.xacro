@@ -150,7 +150,7 @@
    
     <gazebo>
         <is_static>false</is_static>
-        <self_collide>true</self_collide>
+        <self_collide>false</self_collide>
     </gazebo>
 
     <ros2_control name="GazeboSystem" type="system">

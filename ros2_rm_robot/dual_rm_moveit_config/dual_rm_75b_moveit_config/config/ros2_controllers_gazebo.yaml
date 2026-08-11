@@ -88,3 +88,9 @@ left_gripper_controller:
 right_gripper_controller:
   ros__parameters:
     joint: r_gripper_joint
+
+gazebo_ros2_control:
+  ros__parameters:
+    gains:
+      l_gripper_joint: {p: 50.0, d: 0.1}
+      r_gripper_joint: {p: 50.0, d: 0.1}

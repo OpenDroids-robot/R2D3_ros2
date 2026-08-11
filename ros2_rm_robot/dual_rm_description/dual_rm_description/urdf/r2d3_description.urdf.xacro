@@ -8,6 +8,9 @@
     <xacro:arg name="gripper_type" default="$(optenv GRIPPER_TYPE dummy)"/>
     <xacro:property name="gripper_type" value="$(arg gripper_type)"/>
 
+    <xacro:arg name="gz_sim_gripper_path" default=""/>
+    <xacro:property name="gz_sim_gripper_path" value="$(arg gz_sim_gripper_path)"/>
+
     <!-- ═══════════════════════════════════════════════════════════
          Shared components (identical for both arm variants)
          ═══════════════════════════════════════════════════════════ -->
@@ -33,8 +36,14 @@
     </xacro:if>
 
     <xacro:if value="${gripper_type == '4c2'}">
-        <!-- Load the new 4c2 Gripper Macro -->
-        <xacro:include filename="$(find dual_rm_description)/urdf/grippers/4c2_gripper.urdf.xacro"/>
+        
+        <!-- Dynamic Routing: Inject specialized gz_sim file if provided, else default to Classic -->
+        <xacro:if value="${gz_sim_gripper_path != ''}">
+            <xacro:include filename="${gz_sim_gripper_path}"/>
+        </xacro:if>
+        <xacro:if value="${gz_sim_gripper_path == ''}">
+            <xacro:include filename="$(find dual_rm_description)/urdf/grippers/4c2_gripper.urdf.xacro"/>
+        </xacro:if>
         
         <!-- Attach to the 6th link for the 65b model -->
         <xacro:if value="${arm_model == '65b'}">
