@@ -39,6 +39,13 @@ services:
       # while the host LLM server holds the 8 GB card — the CPU pin is the
       # fallback rogent-v3#9 accepted for exactly this contention.
       ROGENT_SPEECH_DEVICE: cpu
+      # Zero-cloud gate (rogent-v3#17): wandb's bundled Sentry reporter phones
+      # home on `import weave`. rogent's sim profile stubs weave in-process;
+      # these cover any other entry point that imports it directly.
+      WANDB_MODE: disabled
+      WANDB_DISABLED: "true"
+      WANDB_ERROR_REPORTING: "false"
+      WEAVE_DISABLED: "true"
     extra_hosts:
       # Ollama runs on the HOST (GPU passthrough into the container is flaky);
       # rogent reaches it at http://host.docker.internal:11434.
