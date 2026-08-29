@@ -46,6 +46,14 @@ services:
       WANDB_DISABLED: "true"
       WANDB_ERROR_REPORTING: "false"
       WEAVE_DISABLED: "true"
+      # Kokoro resolves hexgrad/Kokoro-82M through huggingface_hub, which
+      # phones the Hub (CloudFront) on every start even when the snapshot is
+      # cached on the r2d3_cache volume. Offline mode serves it from cache.
+      HF_HUB_OFFLINE: "1"
+      # Perception's captured-frame directory. rogent derives it by walking up
+      # from its own source tree, which from the /rogent mount reaches "/" and
+      # an unwritable /outputs; pin it inside the (bind-mounted) checkout.
+      ROGENT_OUTPUT_DIR: /rogent/outputs
     extra_hosts:
       # Ollama runs on the HOST (GPU passthrough into the container is flaky);
       # rogent reaches it at http://host.docker.internal:11434.

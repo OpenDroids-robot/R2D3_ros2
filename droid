@@ -513,9 +513,11 @@ cmd_shell() {
 cmd_rogent() {
   require_docker
   resolve_for_teardown
-  compose exec -T sim test -f /run/droid/ready >/dev/null 2>&1 ||
+  # Pre-flight execs get </dev/null: `compose exec -T` still forwards stdin, so
+  # a piped goal (scripted PoC runs) would be eaten before main.py ever reads it.
+  compose exec -T sim test -f /run/droid/ready </dev/null >/dev/null 2>&1 ||
     die "droid rogent: no running container. Provision one with: ./droid up --rogent [--mujoco]"
-  marker="$(compose exec -T sim printenv DROID_ROGENT 2>/dev/null | tr -d '\r')" || marker=""
+  marker="$(compose exec -T sim printenv DROID_ROGENT </dev/null 2>/dev/null | tr -d '\r')" || marker=""
   [ "$marker" = "1" ] ||
     die "droid rogent: the running container was not started with --rogent. Re-provision with: ./droid up --rogent --recreate"
 
@@ -533,7 +535,7 @@ cmd_rogent() {
     sleep 1
     b="$(timeout 5 ros2 topic echo /clock --once 2>/dev/null)"
     [ -n "$a" ] && [ "$a" != "$b" ]
-  ' || die "droid rogent: the simulation clock is not advancing. Launch the sim first (./droid up --rogent --mujoco) and wait for it to come up, then retry."
+  ' </dev/null || die "droid rogent: the simulation clock is not advancing. Launch the sim first (./droid up --rogent --mujoco) and wait for it to come up, then retry."
 
   # Sourced, not bare python3: rogent's sim nav agent is an rclpy node, and
   # rclpy only exists on sys.path inside the ROS environment (the derived
