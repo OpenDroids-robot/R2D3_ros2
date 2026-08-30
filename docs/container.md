@@ -83,6 +83,7 @@ Do not judge the `cpu` tier by frame rate — judge the `nvidia` tier by that.
 | `./droid shell` | Opens a shell in the running container. | Nothing. |
 | `./droid doctor` | Re-runs the platform probe and prints raw + resolved values. | Nothing — read-only, though it does attempt a real `docker run --gpus all` (see below). |
 | `./droid resolve` | Prints the resolved configuration as `key=value` lines. Pure — no side effects. | Nothing. |
+| `./droid render [--rogent] [--gpu <tier>]` | Prints the fully rendered compose configuration `up` would apply (`docker compose config` of the base file plus the resolved tier/mode overlays, host uid/gid interpolated). Runs the same probe as `doctor`; touches no container. Consumed by the dev container (§11). | Nothing. |
 | `./droid down` | Stops the container. | Preserves anything installed inside it (e.g. `sudo apt install`), shell history, and scratch files. |
 | `./droid nuke` | Destroys the container **and its volumes**, requires typing `nuke` to confirm. | Destroys container-local installs, build artifacts, the MuJoCo cache, and any downloaded model weights. |
 
@@ -218,9 +219,108 @@ particular, the accelerated tier, Jetson, arm64 runtime, and macOS are unproven.
 
 ## 11. Optional dev container
 
-A `.devcontainer/` is provided for "Reopen in Container" in VS Code or
-Cursor. It is strictly optional — `./droid shell` gets you the identical
-environment without an editor integration.
+`.devcontainer/` lets VS Code or Cursor "Reopen in Container" from a clean
+clone and land in a working workspace: the same image, the same tier, the
+same shared build volumes as `./droid up`, with `ros2` and the workspace
+sourced in every integrated terminal. It is strictly optional — `./droid
+shell` gets you the same environment without an editor integration.
+
+### What happens on "Reopen in Container"
+
+1. **`initializeCommand`** (host, before compose runs) runs
+   `.devcontainer/initialize.sh`, which calls **`./droid render`** and writes
+   its output to `.devcontainer/docker-compose.resolved.yml` (git-ignored, a
+   per-machine artefact). That is the base compose file plus whichever
+   overlays `./droid up` would select on this machine — `nvidia` when the GPU
+   probe passes, `rogent` when opted in — interpolated with your uid/gid.
+   There is no second copy of the tier decision in JSON: the dev container
+   composes what `./droid` resolves, including the hard failure on an NVIDIA
+   GPU that Docker cannot acquire (§4). The script also pre-creates the five
+   shared volumes with compose's own labels (see below).
+2. **Compose** brings up `docker-compose.resolved.yml` +
+   `docker-compose.dev.yml`. The dev overlay is where the setup deliberately
+   diverges from `./droid up` — see the next subsection.
+3. **`postCreateCommand`** (in the container, once per creation, as `droid`)
+   runs `.devcontainer/post-create.sh`: appends a block to `~/.bashrc` that
+   sources `/opt/ros/jazzy/setup.bash` and `/ws/install/setup.bash`, then
+   runs a plain `colcon build` from `/ws` — the simulation subset, **no
+   `--symlink-install`**, exactly what every `./droid up` launch path does.
+   The build is not repeated on later starts; rebuild yourself
+   (`cd /ws && colcon build --packages-select <pkg>`) and remember the
+   install-space copy trap in `CLAUDE.md` applies here as everywhere.
+4. Terminals open as `droid` (never root — files you create in the
+   bind-mounted tree stay yours), in `/ws/src/R2D3_ros2`, with ROS sourced.
+   The Python and C++ extensions are pointed at `/opt/ros/jazzy` and
+   `/ws/install`.
+
+`shutdownAction` is `none`: closing the editor leaves the container running,
+like `./droid down` never happened; stop it with `docker stop r2d3-dev`.
+
+### How it coexists with `./droid up` — the intentional divergence
+
+The dev container is a **separate compose project and container**
+(`r2d3-dev`, container `r2d3-dev`), not the `r2d3-sim` container `./droid`
+manages. Two tools running `compose up` against one container would each see
+the other's configuration (VS Code's own labels and metadata on one side, the
+drift fingerprint on the other) as a change and recreate it — destroying
+container-local installs on every switch. Keeping the projects distinct means
+neither tool can ever address, recreate or stop the other's container, and
+`./droid up`'s drift gate (§7) only ever inspects `r2d3-sim`, as before.
+
+What the two **share** are the five named volumes: `build/`, `install/`,
+`log/`, the MuJoCo cache and downloaded weights. A build in the editor is what
+`./droid up` launches next, and vice versa. `initialize.sh` creates them with
+compose's project labels so the `r2d3` project still owns them: `./droid up`
+adopts them silently on a fresh clone, and `./droid nuke` removes them — which
+fails while `r2d3-dev` still has them mounted, so `docker rm -f r2d3-dev`
+first if you really mean to nuke.
+
+What the two do **not** share:
+
+- **The display.** Both containers run the GUI stack; the dev container's
+  noVNC is published on **6081** (`DROID_DEV_NOVNC_PORT` to change), so it
+  coexists with `./droid up` on 6080.
+- **The ROS graph.** The image pins `ROS_LOCALHOST_ONLY=1`, so a simulation
+  launched by `./droid up` is invisible to a terminal in the dev container.
+  To work against a running sim from the editor, launch it *in the dev
+  container*: `/opt/droid/launch-sim.sh mujoco` (or `gz`) from an integrated
+  terminal — it rebuilds first, like `./droid up` — and watch it at
+  `http://localhost:6081/vnc.html?autoconnect=1&resize=scale`. Do not run
+  both sims at once: they would build into, and launch from, the same
+  install volume.
+- **The lifecycle.** "Rebuild Container" in the editor is the dev container's
+  equivalent of `./droid up --recreate`; the fingerprint label on `r2d3-dev`
+  reads `devcontainer` because nothing reads it.
+
+### Opting in and out
+
+`initialize.sh` reads the environment and, because a desktop-launched editor
+does not inherit your shell, an optional git-ignored `.devcontainer/local.env`:
+
+```
+DROID_GPU_OVERRIDE=cpu        # skip the GPU tier, like ./droid up --gpu cpu
+DROID_DEVCONTAINER_ROGENT=1   # compose the rogent overlay (§13)
+DROID_ROGENT_SRC=/path/to/rogent-v3
+```
+
+`container/.env` (§12) applies too: `./droid render` inlines it into the
+rendered file, so after editing it run "Rebuild Container" for the change to
+reach the dev container. Changing any of these, or a `git pull` that touches
+the compose files, is a configuration change: rebuild the container. Nothing
+here alters the image — `container/Dockerfile` is untouched by the dev
+container, and `./droid up` still never rebuilds an existing image.
+
+### Verification status
+
+The pieces are covered by the static guards in `container/test/` and were
+exercised individually on the reference amd64 machine: `./droid render` for
+the cpu, nvidia and rogent selections; the merged dev project through
+`docker compose config` and the devcontainer CLI's `read-configuration`;
+`post-create.sh` in a throwaway container from the published image (15
+packages built, a fresh login shell had `ros2` on PATH with the workspace
+sourced, a single-package rebuild worked). The live "Reopen in Container"
+path from a clean clone has **not** been hand-verified; the checklist is in
+the pull request that introduced it.
 
 ## 12. Credentials and caching
 

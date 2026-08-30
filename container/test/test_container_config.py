@@ -300,10 +300,94 @@ class TestSecretsHygiene(unittest.TestCase):
 
 
 class TestDevContainer(unittest.TestCase):
-    def test_targets_the_same_compose_service(self):
-        text = (REPO_ROOT / ".devcontainer" / "devcontainer.json").read_text()
-        self.assertIn("../container/docker-compose.yml", text)
-        self.assertIn('"service": "sim"', text)
+    """The dev container is a SEPARATE compose project that reuses ./droid's
+    resolution (via `./droid render`) and shares the r2d3 project's volumes.
+    Its pieces live in three files plus ./droid; these guards keep them paired."""
+
+    DEVCONTAINER_DIR = REPO_ROOT / ".devcontainer"
+
+    class ComposeLoader(yaml.SafeLoader):
+        """SafeLoader that understands compose's merge tags (`!override`,
+        `!reset`) as plain values, which is all these guards need."""
+
+    ComposeLoader.add_constructor(
+        "!override", lambda loader, node: loader.construct_sequence(node))
+    ComposeLoader.add_constructor(
+        "!reset", lambda loader, node: loader.construct_sequence(node))
+
+    def setUp(self):
+        self.config = json.loads(
+            (self.DEVCONTAINER_DIR / "devcontainer.json").read_text())
+        self.dev_overlay = yaml.load(
+            (self.DEVCONTAINER_DIR / "docker-compose.dev.yml").read_text(),
+            Loader=self.ComposeLoader)
+        self.base = yaml.safe_load(
+            (CONTAINER_DIR / "docker-compose.yml").read_text())
+
+    def test_composes_the_rendered_file_then_the_dev_overlay(self):
+        # Order matters: the rendered file (what ./droid would compose) comes
+        # first, the dev overlay's !override and `name:` win on top of it.
+        self.assertEqual(self.config["dockerComposeFile"],
+                         ["docker-compose.resolved.yml", "docker-compose.dev.yml"])
+        self.assertEqual(self.config["service"], "sim")
+        self.assertEqual(self.config["initializeCommand"],
+                         "bash .devcontainer/initialize.sh")
+
+    def test_rendered_file_is_generated_by_droid_render_and_git_ignored(self):
+        init = (self.DEVCONTAINER_DIR / "initialize.sh").read_text()
+        self.assertIn('droid" render', init)
+        droid = (REPO_ROOT / "droid").read_text()
+        self.assertIn("render) shift; cmd_render", droid)
+        gitignore = (REPO_ROOT / ".gitignore").read_text().splitlines()
+        self.assertIn(".devcontainer/docker-compose.resolved.yml", gitignore)
+        self.assertIn(".devcontainer/local.env", gitignore)
+
+    def test_is_a_separate_project_and_container_from_droid(self):
+        # Both tools running `compose up` against one container would each see
+        # the other's configuration as drift and recreate it. Distinct project
+        # name AND container name, so neither can ever address the other's.
+        self.assertNotEqual(self.dev_overlay["name"], self.base["name"])
+        self.assertNotEqual(self.dev_overlay["services"]["sim"]["container_name"],
+                            self.base["services"]["sim"]["container_name"])
+
+    def test_shares_exactly_the_base_volumes_as_external(self):
+        # Shared build/install/log/cache: a build in the editor is what
+        # `./droid up` launches next. Every base volume, no more, no fewer,
+        # mounted by its r2d3-project name.
+        base_volumes = set(self.base["volumes"])
+        dev_volumes = self.dev_overlay["volumes"]
+        self.assertEqual(set(dev_volumes), base_volumes)
+        project = self.base["name"]
+        for key, spec in dev_volumes.items():
+            self.assertTrue(spec.get("external"), f"{key} is not external")
+            self.assertEqual(spec.get("name"), f"{project}_{key}")
+
+    def test_does_not_publish_droids_novnc_port(self):
+        ports = self.dev_overlay["services"]["sim"]["ports"]
+        self.assertEqual(len(ports), 1)
+        self.assertNotIn("6080:6080", ports[0])
+        # A plain merge would APPEND to the rendered ports and reclaim 6080;
+        # the override tag is what replaces them.
+        text = (self.DEVCONTAINER_DIR / "docker-compose.dev.yml").read_text()
+        self.assertIn("ports: !override", text)
+
+    def test_post_create_builds_without_symlink_install(self):
+        # The container's build semantics equal the host's (CLAUDE.md).
+        post = (self.DEVCONTAINER_DIR / "post-create.sh").read_text()
+        self.assertEqual(self.config["postCreateCommand"],
+                         "bash .devcontainer/post-create.sh")
+        # The command lines (not the comments, which explain the trap).
+        builds = [line.strip() for line in post.splitlines()
+                  if line.strip().startswith("colcon build")]
+        self.assertEqual(builds, ["colcon build"])
+        self.assertIn("/opt/ros/jazzy/setup.bash", post)
+        self.assertIn("/ws/install/setup.bash", post)
+
+    def test_keeps_the_entrypoint(self):
+        # The image entrypoint remaps uid/gid and starts the GUI stack; VS
+        # Code's default of replacing the command would skip it for compose
+        # setups only when asked to, so pin the answer.
+        self.assertIs(self.config.get("overrideCommand"), False)
 
     def test_remote_user_is_droid_not_root(self):
         # The image's final USER is root, and `docker exec` does not run the

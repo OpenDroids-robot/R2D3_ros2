@@ -10,3 +10,5 @@ __pycache__/
 *.pyc
 container/.env
 .env
+.devcontainer/docker-compose.resolved.yml
+.devcontainer/local.env
