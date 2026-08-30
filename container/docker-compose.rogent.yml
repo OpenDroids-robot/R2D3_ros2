@@ -28,6 +28,9 @@ services:
       DROID_ROGENT: "1"
       # Fixed target path decouples in-container config from the host uid.
       PULSE_SERVER: unix:/run/host-pulse/native
+      # `./droid up --rogent --mute` points this at a host null sink so
+      # speech plays silently; otherwise the host's default sink.
+      PULSE_SINK: ${DROID_PULSE_SINK:-@DEFAULT_SINK@}
       # The LLM seam rogent-v3 PR #15 built for this container: flip the
       # bind-mounted checkout to local models with zero file divergence.
       # Ollama serves on the HOST (see extra_hosts below). Default is the

@@ -220,7 +220,10 @@ What the overlay changes:
 - **Reachability** — `host.docker.internal` maps to the host (Ollama serves
   models there on `:11434`), and the host Pulse socket is mounted so speech is
   audible on the host's speakers. On hosts without a Pulse socket, speech
-  degrades and everything else works; rogent mode is Linux-first.
+  degrades and everything else works; rogent mode is Linux-first. Add
+  `--mute` to `./droid up --rogent` to route that playback to a null sink
+  (`droid_mute`, created on the host on demand) — the speech pipeline and its
+  events still run, only the sound is silent. Useful for repeated test runs.
 
 The workflow is two terminals: `./droid up --rogent --mujoco` provisions and
 launches the sim, then `./droid rogent` opens the interactive agent REPL —

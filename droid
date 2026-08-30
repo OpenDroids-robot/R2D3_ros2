@@ -19,7 +19,7 @@ R2D3 containerised simulation workspace.
 Usage: ./droid <command> [options]
 
 Commands:
-  up [--mujoco] [--rogent] [--gpu <tier>] [--recreate]
+  up [--mujoco] [--rogent] [--gpu <tier>] [--recreate] [--mute]
                 Ensure the image, start the container, rebuild the simulation
                 subset, launch the simulation, and print the noVNC URL.
   rogent        Open an interactive rogent agent session (REPL) in a container
@@ -36,6 +36,9 @@ Options for `up`:
                 an in-container router, rogent source bind-mounted from
                 DROID_ROGENT_SRC. Run the agent afterwards with ./droid rogent.
   --gpu <tier>  Override platform detection. <tier> is `cpu` or `nvidia`.
+  --mute        Rogent mode: route the agent's speech to a silent null sink on
+                the host (created on demand) instead of your speakers. Speech
+                events and logs are unaffected -- only the playback is silent.
   --recreate    Consent to recreating the container when its configuration has
                 drifted. This destroys container-local installations.
 
@@ -427,10 +430,29 @@ EOF
   export DROID_ROGENT_SRC
 }
 
+# --mute: the container's paplay honours PULSE_SINK, so pointing it at a
+# null sink on the host silences playback without touching rogent -- the
+# synthesis/playback events that the PoC audit relies on still fire. The sink
+# is created on demand (module-null-sink) and survives until the sound server
+# restarts; DROID_PULSE_SINK is folded into the compose env by the overlay.
+MUTE_SINK="droid_mute"
+enable_mute_sink() {
+  command -v pactl >/dev/null 2>&1 ||
+    die "droid up --mute: pactl not found on the host (pulseaudio-utils)"
+  pactl list short sinks 2>/dev/null | awk '{print $2}' | grep -qx "$MUTE_SINK" ||
+    pactl load-module module-null-sink "sink_name=$MUTE_SINK" \
+      "sink_properties=device.description=DroidMute" >/dev/null ||
+    die "droid up --mute: could not create the $MUTE_SINK null sink"
+  DROID_PULSE_SINK="$MUTE_SINK"
+  export DROID_PULSE_SINK
+  echo "droid: rogent speech muted (host sink $MUTE_SINK)"
+}
+
 cmd_up() {
   backend="gz"
   recreate="no"
   rogent_mode="no"
+  mute="no"
   while [ $# -gt 0 ]; do
     case "$1" in
       --mujoco) backend="mujoco"; shift ;;
@@ -438,6 +460,7 @@ cmd_up() {
       --gpu) [ $# -ge 2 ] || die "droid up: --gpu needs a tier"
              DROID_GPU_OVERRIDE="$2"; export DROID_GPU_OVERRIDE; shift 2 ;;
       --recreate) recreate="yes"; shift ;;
+      --mute) mute="yes"; shift ;;
       *) die "droid up: unknown option '$1' (try ./droid --help)" ;;
     esac
   done
@@ -446,6 +469,7 @@ cmd_up() {
     DROID_ROGENT_MODE="1"
     export DROID_ROGENT_MODE
     require_rogent_src
+    [ "$mute" = "yes" ] && enable_mute_sink
   fi
 
   require_docker
