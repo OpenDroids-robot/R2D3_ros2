@@ -27,6 +27,11 @@ Commands:
   shell         Open a shell in the running container.
   doctor        Re-run the platform probe and print raw + resolved values.
   resolve       Print the resolved configuration as key=value lines. No side effects.
+  render [--rogent] [--gpu <tier>]
+                Print the fully rendered compose configuration `up` would apply
+                (base file + the resolved tier and mode overlays, interpolated),
+                as `docker compose config` YAML. Touches no container; the dev
+                container's initializeCommand consumes this.
   down          Stop the container, preserving anything installed inside it.
   nuke          Destroy the container AND its volumes. Container-local installs are lost.
 
@@ -550,6 +555,30 @@ cmd_rogent() {
   ' rogent-main "$@"
 }
 
+# The one place the compose file selection is exposed as data rather than
+# acted upon. `.devcontainer/initialize.sh` feeds this to VS Code so "Reopen in
+# Container" composes exactly what `up` would -- same probe, same tier, same
+# overlays, same host uid/gid -- without a second copy of the decision table in
+# JSON. It runs the same platform probe as `doctor` (including the
+# `docker run --gpus all` attempt) and hard-fails on an unreachable GPU the same
+# way `up` does; `--gpu cpu` (or DROID_GPU_OVERRIDE=cpu in the environment) is
+# the escape hatch. No image is materialised, so the fingerprint label in the
+# output may read `no-local-image`; the dev container overlay replaces it anyway.
+cmd_render() {
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --rogent) DROID_ROGENT_MODE="1"; export DROID_ROGENT_MODE; shift ;;
+      --gpu) [ $# -ge 2 ] || die "droid render: --gpu needs a tier"
+             DROID_GPU_OVERRIDE="$2"; export DROID_GPU_OVERRIDE; shift 2 ;;
+      *) die "droid render: unknown option '$1' (try ./droid --help)" ;;
+    esac
+  done
+  [ "${DROID_ROGENT_MODE:-}" = "1" ] && require_rogent_src
+  require_docker
+  load_resolved
+  compose config
+}
+
 cmd_down() {
   require_docker
   resolve_for_teardown
@@ -581,6 +610,7 @@ case "$1" in
   resolve) shift; cmd_resolve "$@" ;;
   doctor) shift; cmd_doctor "$@" ;;
   up) shift; cmd_up "$@" ;;
+  render) shift; cmd_render "$@" ;;
   rogent) shift; cmd_rogent "$@" ;;
   shell) shift; cmd_shell "$@" ;;
   down) shift; cmd_down "$@" ;;
