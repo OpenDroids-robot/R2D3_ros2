@@ -521,33 +521,12 @@ cmd_rogent() {
   [ "$marker" = "1" ] ||
     die "droid rogent: the running container was not started with --rogent. Re-provision with: ./droid up --rogent --recreate"
 
-  # Sim-ready guard: /clock must be ADVANCING, not merely present. The known
-  # failure mode in this repo is a stalled clock with every process still
-  # alive (headless render death), so two samples are compared rather than
-  # asserting a single message arrived. The exec session inherits the
-  # container-wide RMW_IMPLEMENTATION=rmw_zenoh_cpp, so this also proves the
-  # zenoh graph rogent is about to join actually carries sim traffic.
-  compose exec -T -u droid sim bash -c '
-    set +u; . /opt/ros/jazzy/setup.sh
-    [ -f /ws/install/setup.sh ] && . /ws/install/setup.sh
-    set -u
-    a="$(timeout 5 ros2 topic echo /clock --once 2>/dev/null)"
-    sleep 1
-    b="$(timeout 5 ros2 topic echo /clock --once 2>/dev/null)"
-    [ -n "$a" ] && [ "$a" != "$b" ]
-  ' </dev/null || die "droid rogent: the simulation clock is not advancing. Launch the sim first (./droid up --rogent --mujoco) and wait for it to come up, then retry."
-
-  # Sourced, not bare python3: rogent's sim nav agent is an rclpy node, and
-  # rclpy only exists on sys.path inside the ROS environment (the derived
-  # image deliberately filters PyPI's fake rclpy out of the pip install).
-  # Without this the nav2 bridge import fails and navigation silently
-  # degrades to stubs.
-  compose exec -u droid -w /rogent sim bash -c '
-    set +u; . /opt/ros/jazzy/setup.sh
-    [ -f /ws/install/setup.sh ] && . /ws/install/setup.sh
-    set -u
-    exec python3 main.py "$@"
-  ' rogent-main "$@"
+  # Everything from here -- the sim-ready guard (/clock must be ADVANCING,
+  # not merely present), the sourced ROS environment rclpy needs, and the
+  # exec of main.py -- lives in container/rogent-run.sh, shared with the
+  # agent pane of the noVNC desktop (gui-start.sh) so the two paths cannot
+  # drift. Without --wait a stalled clock is a hard failure with remediation.
+  compose exec -u droid -w /rogent sim /opt/droid/rogent-run.sh "$@"
 }
 
 cmd_down() {
