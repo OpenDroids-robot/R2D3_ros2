@@ -108,7 +108,19 @@ RUN source /opt/ros/jazzy/setup.bash; \
     python3 /ws/src/R2D3_ros2/container/prewarm-mjcf.py
 USER root
 
-COPY container/entrypoint.sh container/gui-start.sh container/launch-sim.sh /opt/droid/
+# The desktop's terminal panes (docs/container.md, "The desktop"). xterm is the
+# lightest emulator that renders a TrueType font legibly through noVNC's
+# scaling. hsetroot (41 kB) is the wallpaper setter fluxbox's fbsetbg looks
+# for; without one it pops an xmessage over the desktop on every start (see
+# gui-start.sh). Its own late layer rather than the base apt line above:
+# adding a package there invalidates the rosdep, workspace-build and MuJoCo
+# pre-warm layers for a three-package change.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      xterm fonts-dejavu-core hsetroot \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY container/entrypoint.sh container/gui-start.sh container/launch-sim.sh \
+     container/rogent-run.sh container/fluxbox-apps /opt/droid/
 RUN chmod +x /opt/droid/*.sh
 
 # The virtual X server that gui-start.sh creates. It MUST live in the image env,

@@ -23,6 +23,40 @@ command and the same URL work on an amd64 Linux desktop, an Apple Silicon
 Mac, a Jetson, or a headless cloud instance, because the GUI is delivered
 over noVNC rather than through the host's display stack.
 
+## 1a. The desktop
+
+What the browser shows is a single 1920x1080 virtual screen (`DROID_GEOMETRY`
+overrides it) running fluxbox, tiled into four fixed, peer quadrants so that
+everything is usable at the viewer's default `resize=scale` size:
+
+```
++-------------------------+-------------------------+
+| simulator               | RViz                    |
+| (MuJoCo viewer / Gazebo)|                         |
++-------------------------+-------------------------+
+| rogent agent  (goal>)   | shell                   |
+| rogent mode only        | ROS + workspace sourced |
++-------------------------+-------------------------+
+```
+
+- **Simulator** and **RViz** are placed by the fluxbox `apps` file
+  (`container/fluxbox-apps`, matched on window class, installed into
+  `~/.fluxbox/apps` on every container start by `container/gui-start.sh`).
+- **Shell** (lower right, both modes) is an `xterm` running an interactive
+  bash with `/opt/ros/jazzy` and, once the first launch has built it,
+  `/ws/install` sourced — `ros2 topic list`, `ros2 action list`,
+  `ros2 topic echo /clock` all work from the browser.
+- **Agent** (lower left, rogent mode only) is an `xterm` running
+  `container/rogent-run.sh --wait`: it prints "waiting for the simulation
+  clock to advance" until the sim is really up, then starts the rogent REPL at
+  its `goal>` prompt. Type a goal there exactly as you would in `./droid
+  rogent`. `./droid rogent` from the host is the same script without `--wait`
+  and still works alongside the pane (a second REPL is fine).
+
+The two terminals are supervised by `gui-start.sh`, which respawns a pane
+that is closed (Ctrl-D, or the REPL exiting), so the browser view never loses
+its way back in. Click a pane to give it keyboard focus before typing.
+
 ## 2. The two tiers, and their different ambitions
 
 `./droid up` resolves to one of two rendering tiers:
@@ -169,7 +203,8 @@ Stated honestly:
 | amd64, software-rendering tier, MuJoCo | **Hand-verified** — `./droid up --mujoco` reaches a running sim on a warm cache hit: `/clock` advancing, six controllers active, MuJoCo viewer + RViz in the browser |
 | amd64 image build + workspace compile | Verified locally (the image builds and the 15-package subset compiles inside it) |
 | amd64 and arm64 image build in CI | Expected to pass; this branch has not yet been pushed, so CI has not actually run it yet |
-| Rogent mode (`up --rogent`, zenoh graph, `./droid rogent`) | **Not verified** — static consistency checks only (`container/test/`); the derived image has not been built nor the zenoh bringup exercised end-to-end |
+| Rogent mode (`up --rogent --mujoco`, zenoh graph, agent pane, `./droid rogent`) | **Hand-verified** (amd64, software tier) — the derived image builds, the zenoh bringup reaches an advancing `/clock`, the desktop shows MuJoCo, RViz, the agent pane at `goal>` and the shell pane, and a typed goal runs the loop end-to-end against host Ollama |
+| Default mode desktop panes (`up --mujoco`) | **Hand-verified** — MuJoCo, RViz and the shell pane; `ros2 topic list` works in the pane |
 | NVIDIA accelerated tier | **Not verified** |
 | Jetson | **Not verified** |
 | arm64 at runtime | **Not booted** — only expected to build once CI runs |
@@ -225,11 +260,15 @@ What the overlay changes:
   (`droid_mute`, created on the host on demand) — the speech pipeline and its
   events still run, only the sound is silent. Useful for repeated test runs.
 
-The workflow is two terminals: `./droid up --rogent --mujoco` provisions and
-launches the sim, then `./droid rogent` opens the interactive agent REPL —
-guarded by a check that the simulation clock is actually advancing. Local
-models are the no-keys fallback: with Google API keys present in rogent's
-environment it uses Gemini, with no keys it runs fully local.
+The workflow: `./droid up --rogent --mujoco` provisions and launches the sim,
+and the agent pane on the noVNC desktop (§1a) comes up at the rogent `goal>`
+prompt once the simulation clock is advancing — the browser view is
+self-sufficient. `./droid rogent` from a host terminal opens a second,
+identical REPL; both go through `container/rogent-run.sh`, which owns the
+sim-ready guard (the clock must be advancing, not merely present) and the
+sourced ROS environment rclpy needs. Local models are the no-keys fallback:
+with Google API keys present in rogent's environment it uses Gemini, with no
+keys it runs fully local.
 
 ## 14. Naming
 
